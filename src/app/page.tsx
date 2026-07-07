@@ -244,43 +244,75 @@ Einstein's famous equation $E = mc^2$ shows the equivalence of mass and energy, 
 This demonstrates how the rich text engine handles **bold text**, *italic text*, ~~strikethrough~~, and \`inline code\` blocks wrapped seamlessly around inline citations like this one [1].
 `);
 
+  const [activePanel, setActivePanel] = useState<"editor" | "preview">("editor");
+
   const wordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
   const characterCount = markdown.length;
 
   return (
-    <main className="flex min-h-svh flex-col bg-surface text-ink lg:h-svh lg:overflow-hidden">
-      <header className="border-b border-hairline-soft bg-canvas px-4 py-3 sm:px-6">
-        <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+    <main className="flex h-svh min-h-svh min-w-0 flex-col overflow-hidden bg-surface text-ink">
+      <header className="shrink-0 border-b border-hairline-soft bg-canvas px-4 py-3 sm:px-6">
+        <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
             <h1 className="text-base font-bold tracking-tight text-ink sm:text-lg">Markdown Renderer</h1>
             <p className="text-xs font-medium text-steel">Clean writing input with rich rendered output.</p>
           </div>
-          <div className="flex gap-3 text-xs font-semibold text-steel">
-            <span>{wordCount.toLocaleString()} words</span>
-            <span>{characterCount.toLocaleString()} chars</span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
+            <div className="grid grid-cols-2 rounded-lg border border-hairline bg-surface-soft p-1 md:hidden">
+              <button
+                type="button"
+                onClick={() => setActivePanel("editor")}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                  activePanel === "editor" ? "bg-white text-ink shadow-sm" : "text-steel hover:text-ink"
+                }`}
+              >
+                Editor
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePanel("preview")}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                  activePanel === "preview" ? "bg-white text-ink shadow-sm" : "text-steel hover:text-ink"
+                }`}
+              >
+                Preview
+              </button>
+            </div>
+            <div className="flex gap-3 text-xs font-semibold text-steel">
+              <span>{wordCount.toLocaleString()} words</span>
+              <span>{characterCount.toLocaleString()} chars</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[96rem] flex-1 gap-4 overflow-y-auto p-4 sm:p-6 lg:min-h-0 lg:grid-cols-[minmax(22rem,0.95fr)_minmax(0,1.05fr)] lg:overflow-hidden">
-        <section className="flex min-h-[24rem] min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-canvas shadow-sm lg:min-h-0">
+      <div className="mx-auto grid min-h-0 w-full max-w-[96rem] flex-1 gap-4 overflow-hidden p-3 sm:p-4 md:grid-cols-[minmax(18rem,0.95fr)_minmax(0,1.05fr)] md:p-6">
+        <section
+          className={`min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-canvas shadow-sm md:flex ${
+            activePanel === "editor" ? "flex" : "hidden"
+          }`}
+        >
           <div className="flex items-center justify-between border-b border-hairline-soft bg-white px-4 py-3">
             <h2 className="text-xs font-bold uppercase tracking-wider text-steel">Markdown Input</h2>
           </div>
           <textarea
-            className="internal-scroll min-h-[22rem] flex-1 resize-none bg-canvas p-4 font-mono text-sm leading-7 text-charcoal outline-none transition focus:bg-white sm:p-5 lg:min-h-0"
+            className="internal-scroll min-h-0 flex-1 resize-none bg-canvas p-4 font-mono text-sm leading-7 text-charcoal outline-none transition focus:bg-white sm:p-5"
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
             spellCheck={false}
           />
         </section>
 
-        <section className="flex min-h-[32rem] min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-canvas shadow-sm lg:min-h-0">
+        <section
+          className={`min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-canvas shadow-sm md:flex ${
+            activePanel === "preview" ? "flex" : "hidden"
+          }`}
+        >
           <div className="sticky top-0 z-10 border-b border-hairline-soft bg-white/95 px-4 py-3 backdrop-blur">
             <h2 className="text-xs font-bold uppercase tracking-wider text-steel">Rich Text Output</h2>
           </div>
-          <div className="internal-scroll flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl">
+          <div className="internal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 md:px-7 lg:px-8">
+            <div className="mx-auto min-w-0 max-w-3xl">
               <RichMarkdown content={markdown} />
             </div>
           </div>

@@ -138,12 +138,24 @@ textarea::selection {
 }
 
 .chat-markdown {
+  min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.chat-markdown > * {
+  min-width: 0;
 }
 
 .chat-markdown svg {
   display: block;
   max-width: 100%;
+}
+
+.chat-markdown .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
 }
 
 .chat-markdown .mermaid,

@@ -30,7 +30,7 @@ import { motion } from "framer-motion";
 type ChartConfig = {
   type: "bar" | "line" | "pie" | "area" | "radar" | "composed";
   title?: string;
-  data: any[];
+  data: Record<string, string | number>[];
   keys?: string[]; // main keys for bar/line/area/radar
   colors?: string[];
   // For composed chart specifically
@@ -39,15 +39,29 @@ type ChartConfig = {
   areas?: string[];
 };
 
+type TooltipPayloadEntry = {
+  color?: string;
+  name?: string;
+  value?: string | number;
+};
+
 const DEFAULT_COLORS = ["#3f6df6", "#ff5f56", "#ffbd2e", "#27c93f", "#a855f7"];
 
 // Custom Glassmorphism Tooltip
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string | number;
+}) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-xl border border-white/20 bg-white/70 p-4 shadow-xl backdrop-blur-md">
         <p className="mb-2 border-b border-hairline-soft pb-1 text-sm font-black text-ink">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <div key={`item-${index}`} className="flex items-center gap-2 text-xs font-bold text-charcoal">
             <div className="size-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
             <span>{entry.name}:</span>
@@ -66,9 +80,9 @@ export default function RichChart({ configStr }: { configStr: string }) {
   const config = useMemo<ChartConfig | null>(() => {
     try {
       // Strip any stray backticks the LLM might have injected inside the block
-      let cleanStr = configStr.replace(/^`+|`+$/g, "").trim();
-      return JSON5.parse(cleanStr);
-    } catch (e) {
+        const cleanStr = configStr.replace(/^`+|`+$/g, "").trim();
+        return JSON5.parse(cleanStr);
+      } catch {
       return null;
     }
   }, [configStr]);
@@ -115,7 +129,7 @@ export default function RichChart({ configStr }: { configStr: string }) {
               <YAxis {...axisProps} />
               <Tooltip cursor={{ fill: "rgba(0,0,0,0.02)" }} content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: "12px", fontWeight: "bold", paddingTop: "20px" }} iconType="circle" />
-              {keys.map((key, i) => (
+              {keys.map((key) => (
                 <Bar
                   key={key}
                   dataKey={key}
@@ -232,10 +246,10 @@ export default function RichChart({ configStr }: { configStr: string }) {
               <YAxis {...axisProps} />
               <Tooltip cursor={{ fill: "rgba(0,0,0,0.02)" }} content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: "12px", fontWeight: "bold", paddingTop: "20px" }} iconType="circle" />
-              {(areas || []).map((key, i) => (
+              {(areas || []).map((key) => (
                 <Area key={key} type="monotone" dataKey={key} fill="#f3f4f6" stroke="none" />
               ))}
-              {(bars || []).map((key, i) => (
+              {(bars || []).map((key) => (
                 <Bar key={key} dataKey={key} fill={`url(#colorBar-${key}-${chartId})`} radius={[4, 4, 0, 0]} barSize={20} animationDuration={1500} />
               ))}
               {(lines || []).map((key, i) => (
@@ -287,9 +301,9 @@ export default function RichChart({ configStr }: { configStr: string }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-      className="my-6 w-full rounded-2xl border border-hairline bg-white p-6 pb-2 shadow-sm transition-all duration-300 ease-out hover:border-hairline-soft hover:shadow-md"
+      className="my-6 w-full min-w-0 overflow-hidden rounded-lg border border-hairline bg-white p-3 pb-1 shadow-sm transition-all duration-300 ease-out hover:border-hairline-soft hover:shadow-md sm:p-6 sm:pb-2"
     >
-      {title && <h3 className="mb-6 px-2 text-center text-[13px] font-black uppercase tracking-widest text-ink">{title}</h3>}
+      {title && <h3 className="mb-4 px-2 text-center text-xs font-black uppercase text-ink sm:mb-6 sm:text-[13px]">{title}</h3>}
       {renderChart()}
     </motion.div>
   );

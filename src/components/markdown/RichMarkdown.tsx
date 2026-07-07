@@ -121,7 +121,7 @@ export default function RichMarkdown({
   citations?: Citation[];
 }) {
   return (
-    <div className="chat-markdown text-[15px] font-medium leading-7 text-charcoal sm:text-base">
+    <div className="chat-markdown min-w-0 text-[15px] font-medium leading-7 text-charcoal sm:text-base">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
@@ -141,22 +141,22 @@ export default function RichMarkdown({
         ]}
         components={{
           h1: ({ children }) => (
-            <h1 className="mb-5 mt-10 text-3xl font-black leading-tight text-ink first:mt-0 sm:text-4xl">
+            <h1 className="mb-5 mt-8 text-2xl font-black leading-tight text-ink first:mt-0 sm:mt-10 sm:text-4xl">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="mb-4 mt-9 border-b border-hairline-soft pb-2 text-2xl font-extrabold leading-snug text-ink first:mt-0">
+            <h2 className="mb-4 mt-8 border-b border-hairline-soft pb-2 text-xl font-extrabold leading-snug text-ink first:mt-0 sm:mt-9 sm:text-2xl">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="mb-3 mt-7 text-xl font-bold leading-snug text-ink first:mt-0">
+            <h3 className="mb-3 mt-6 text-lg font-bold leading-snug text-ink first:mt-0 sm:mt-7 sm:text-xl">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </h3>
           ),
           h4: ({ children }) => (
-            <h4 className="mb-2 mt-6 text-lg font-bold leading-snug text-ink first:mt-0">
+            <h4 className="mb-2 mt-5 text-base font-bold leading-snug text-ink first:mt-0 sm:mt-6 sm:text-lg">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </h4>
           ),
@@ -171,7 +171,7 @@ export default function RichMarkdown({
             </h6>
           ),
           p: ({ children }) => (
-            <p className="my-4 leading-8 text-charcoal first:mt-0 last:mb-0">
+            <p className="my-4 leading-7 text-charcoal first:mt-0 last:mb-0 sm:leading-8">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </p>
           ),
@@ -179,20 +179,20 @@ export default function RichMarkdown({
           em: ({ children }) => <em className="italic text-charcoal">{children}</em>,
           del: ({ children }) => <del className="text-steel decoration-steel/70">{children}</del>,
           blockquote: ({ children }) => (
-            <blockquote className="my-6 rounded-r-lg border-l-4 border-brand-blue bg-brand-blue/5 px-5 py-4 text-[0.96em] leading-8 text-slate">
+            <blockquote className="my-6 rounded-r-lg border-l-4 border-brand-blue bg-brand-blue/5 px-4 py-4 text-[0.96em] leading-7 text-slate sm:px-5 sm:leading-8">
               {children}
             </blockquote>
           ),
           ul: ({ children }) => (
-            <ul className="my-4 list-disc space-y-2 pl-6 marker:text-brand-blue">{children}</ul>
+            <ul className="my-4 list-disc space-y-2 pl-5 marker:text-brand-blue sm:pl-6">{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol className="my-4 list-decimal space-y-2 pl-6 marker:font-bold marker:text-brand-blue">
+            <ol className="my-4 list-decimal space-y-2 pl-5 marker:font-bold marker:text-brand-blue sm:pl-6">
               {children}
             </ol>
           ),
           li: ({ children }) => (
-            <li className="pl-1 leading-8">
+            <li className="pl-1 leading-7 sm:leading-8">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </li>
           ),
@@ -229,7 +229,7 @@ export default function RichMarkdown({
           },
           table: ({ children }) => (
             <div className="internal-scroll my-6 max-w-full overflow-x-auto rounded-lg border border-hairline bg-white shadow-sm">
-              <table className="w-full min-w-[40rem] border-collapse text-left text-sm">{children}</table>
+              <table className="w-full min-w-[34rem] border-collapse text-left text-sm sm:min-w-[40rem]">{children}</table>
             </div>
           ),
           thead: ({ children }) => (
@@ -240,12 +240,12 @@ export default function RichMarkdown({
           tbody: ({ children }) => <tbody className="divide-y divide-hairline-soft bg-white">{children}</tbody>,
           tr: ({ children }) => <tr className="transition-colors hover:bg-surface/60">{children}</tr>,
           th: ({ children }) => (
-            <th className="whitespace-nowrap px-4 py-3 align-bottom font-bold">
+            <th className="whitespace-nowrap px-3 py-3 align-bottom font-bold sm:px-4">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </th>
           ),
           td: ({ children }) => (
-            <td className="px-4 py-3 align-top text-charcoal">
+            <td className="px-3 py-3 align-top text-charcoal sm:px-4">
               <InlineWithCitations citations={citations}>{children}</InlineWithCitations>
             </td>
           ),
@@ -266,7 +266,7 @@ export default function RichMarkdown({
               src={src || ""}
               alt={alt || ""}
               title={title}
-              className="my-6 h-auto max-h-[40rem] w-full rounded-lg border border-hairline-soft object-contain shadow-sm"
+              className="my-6 h-auto max-h-[70svh] w-full rounded-lg border border-hairline-soft object-contain shadow-sm sm:max-h-[40rem]"
               loading="lazy"
             />
           ),

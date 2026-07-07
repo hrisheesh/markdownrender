@@ -28,7 +28,7 @@ export default function RichCodeBlock({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Header Bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-hairline-soft bg-surface-soft px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 border-b border-hairline-soft bg-surface-soft px-3 py-2.5 sm:px-4">
         <div className="flex items-center gap-2">
           {/* Mac-style window controls */}
           <div className="flex gap-1.5 opacity-75 mix-blend-multiply">
@@ -86,7 +86,7 @@ export default function RichCodeBlock({
       </div>
 
       {/* Code Area */}
-      <div className="internal-scroll max-h-[500px] overflow-auto scroll-smooth">
+      <div className="internal-scroll max-h-[60svh] overflow-auto scroll-smooth sm:max-h-[500px]">
         <SyntaxHighlighter
           language={language || "text"}
           style={oneLight}
