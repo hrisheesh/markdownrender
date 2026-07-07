@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Check, Copy, Trash2 } from "lucide-react";
 import RichMarkdown from "@/components/markdown/RichMarkdown";
 
 export default function MarkdownPlayground() {
@@ -245,9 +246,22 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
 `);
 
   const [activePanel, setActivePanel] = useState<"editor" | "preview">("editor");
+  const [copied, setCopied] = useState(false);
 
   const wordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
   const characterCount = markdown.length;
+  const lineCount = markdown.length === 0 ? 0 : markdown.split(/\r\n|\r|\n/).length;
+  const isEmpty = markdown.trim().length === 0;
+
+  async function copyMarkdown() {
+    if (isEmpty) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(markdown);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  }
 
   return (
     <main className="flex h-svh min-h-svh min-w-0 flex-col overflow-hidden bg-surface text-ink">
@@ -278,8 +292,9 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
                 Preview
               </button>
             </div>
-            <div className="flex gap-3 text-xs font-semibold text-steel">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-steel">
               <span>{wordCount.toLocaleString()} words</span>
+              <span>{lineCount.toLocaleString()} lines</span>
               <span>{characterCount.toLocaleString()} chars</span>
             </div>
           </div>
@@ -292,13 +307,37 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
             activePanel === "editor" ? "flex" : "hidden"
           }`}
         >
-          <div className="flex items-center justify-between border-b border-hairline-soft bg-white px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-b border-hairline-soft bg-white px-4 py-3">
             <h2 className="text-xs font-bold uppercase tracking-wider text-steel">Markdown Input</h2>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={copyMarkdown}
+                disabled={isEmpty}
+                className="inline-flex size-8 items-center justify-center rounded-md border border-hairline bg-canvas text-steel transition hover:border-hairline hover:bg-surface-soft hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40 disabled:opacity-45"
+                title={copied ? "Copied" : "Copy markdown"}
+                aria-label={copied ? "Copied markdown" : "Copy markdown"}
+              >
+                {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarkdown("")}
+                disabled={isEmpty}
+                className="inline-flex size-8 items-center justify-center rounded-md border border-hairline bg-canvas text-steel transition hover:border-hairline hover:bg-surface-soft hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40 disabled:opacity-45"
+                title="Clear editor"
+                aria-label="Clear editor"
+              >
+                <Trash2 size={15} aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <textarea
             className="internal-scroll min-h-0 flex-1 resize-none bg-canvas p-4 font-mono text-sm leading-7 text-charcoal outline-none transition focus:bg-white sm:p-5"
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
+            placeholder="Start typing markdown..."
+            aria-label="Markdown input"
             spellCheck={false}
           />
         </section>
@@ -313,7 +352,18 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
           </div>
           <div className="internal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 md:px-7 lg:px-8">
             <div className="mx-auto min-w-0 max-w-3xl">
-              <RichMarkdown content={markdown} />
+              {isEmpty ? (
+                <div className="flex min-h-[18rem] items-center justify-center rounded-lg border border-dashed border-hairline bg-surface/60 px-6 py-10 text-center">
+                  <div className="max-w-sm">
+                    <p className="text-sm font-bold text-ink">Preview is waiting for markdown</p>
+                    <p className="mt-2 text-sm leading-6 text-steel">
+                      Write in the editor and the rendered result will appear here.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <RichMarkdown content={markdown} />
+              )}
             </div>
           </div>
         </section>
