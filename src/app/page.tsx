@@ -244,26 +244,48 @@ Einstein's famous equation $E = mc^2$ shows the equivalence of mass and energy, 
 This demonstrates how the rich text engine handles **bold text**, *italic text*, ~~strikethrough~~, and \`inline code\` blocks wrapped seamlessly around inline citations like this one [1].
 `);
 
+  const wordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
+  const characterCount = markdown.length;
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F9F9F9]">
-      <div className="flex w-1/2 flex-col border-r border-[#E5E5E5] bg-white">
-        <div className="border-b border-[#E5E5E5] bg-[#FAFAFA] p-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[#6B7280]">Markdown Input</h2>
+    <main className="flex min-h-svh flex-col bg-surface text-ink lg:h-svh lg:overflow-hidden">
+      <header className="border-b border-hairline-soft bg-canvas px-4 py-3 sm:px-6">
+        <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-base font-bold tracking-tight text-ink sm:text-lg">Markdown Renderer</h1>
+            <p className="text-xs font-medium text-steel">Clean writing input with rich rendered output.</p>
+          </div>
+          <div className="flex gap-3 text-xs font-semibold text-steel">
+            <span>{wordCount.toLocaleString()} words</span>
+            <span>{characterCount.toLocaleString()} chars</span>
+          </div>
         </div>
-        <textarea
-          className="flex-1 resize-none p-6 font-mono text-sm leading-relaxed text-[#374151] outline-none"
-          value={markdown}
-          onChange={(e) => setMarkdown(e.target.value)}
-        />
+      </header>
+
+      <div className="mx-auto grid w-full max-w-[96rem] flex-1 gap-4 overflow-y-auto p-4 sm:p-6 lg:min-h-0 lg:grid-cols-[minmax(22rem,0.95fr)_minmax(0,1.05fr)] lg:overflow-hidden">
+        <section className="flex min-h-[24rem] min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-canvas shadow-sm lg:min-h-0">
+          <div className="flex items-center justify-between border-b border-hairline-soft bg-white px-4 py-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-steel">Markdown Input</h2>
+          </div>
+          <textarea
+            className="internal-scroll min-h-[22rem] flex-1 resize-none bg-canvas p-4 font-mono text-sm leading-7 text-charcoal outline-none transition focus:bg-white sm:p-5 lg:min-h-0"
+            value={markdown}
+            onChange={(e) => setMarkdown(e.target.value)}
+            spellCheck={false}
+          />
+        </section>
+
+        <section className="flex min-h-[32rem] min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-canvas shadow-sm lg:min-h-0">
+          <div className="sticky top-0 z-10 border-b border-hairline-soft bg-white/95 px-4 py-3 backdrop-blur">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-steel">Rich Text Output</h2>
+          </div>
+          <div className="internal-scroll flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-3xl">
+              <RichMarkdown content={markdown} />
+            </div>
+          </div>
+        </section>
       </div>
-      <div className="flex w-1/2 flex-col overflow-y-auto">
-        <div className="sticky top-0 z-10 border-b border-[#E5E5E5] bg-[#FAFAFA]/90 p-4 backdrop-blur-md">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[#6B7280]">Rich Text Output</h2>
-        </div>
-        <div className="p-8">
-          <RichMarkdown content={markdown} />
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }
