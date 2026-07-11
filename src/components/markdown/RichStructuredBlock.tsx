@@ -2,18 +2,21 @@
 
 import React, { useMemo, useState } from "react";
 import JSON5 from "json5";
-import { Check, ChevronDown, CircleAlert, CircleCheck, Info, Lightbulb } from "lucide-react";
+import { Check, ChevronDown, CircleAlert, CircleCheck, File, Folder, Info, Lightbulb } from "lucide-react";
 
-type BlockType = "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion";
+type BlockType = "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion" | "tabs" | "cards" | "filetree" | "progress" | "checklist" | "status";
 
 type StructuredConfig = {
   title?: string;
   tone?: "note" | "insight" | "success" | "warning";
   body?: string;
   metrics?: { label: string; value: string | number; change?: string; detail?: string }[];
-  items?: { date?: string; title: string; description?: string; status?: "complete" | "current" | "upcoming"; meta?: string; open?: boolean; content?: string }[];
+  items?: { date?: string; title: string; description?: string; status?: "complete" | "current" | "upcoming" | "blocked"; meta?: string; open?: boolean; content?: string; value?: number; total?: number; checked?: boolean }[];
   columns?: string[];
   rows?: { label: string; values: (string | boolean | number)[] }[];
+  tabs?: { label: string; title?: string; content: string }[];
+  cards?: { title: string; description?: string; meta?: string; eyebrow?: string }[];
+  files?: { name: string; type?: "file" | "folder"; detail?: string; depth?: number }[];
 };
 
 const toneStyles = {
@@ -82,6 +85,39 @@ function Accordion({ config }: { config: StructuredConfig }) {
   return <section className="my-10"><BlockTitle title={config.title} eyebrow="Details" /><div className="overflow-hidden rounded-2xl border border-black/[0.08]">{config.items.map((item, index) => { const isOpen = open === index; return <div key={`${item.title}-${index}`} className="border-b border-black/[0.07] last:border-0"><button type="button" onClick={() => setOpen(isOpen ? null : index)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold tracking-[-0.015em] text-[#1d1d1f] transition-colors hover:bg-[#fbfbfd]"><span>{item.title}</span><ChevronDown className={`size-4 shrink-0 text-[#86868b] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} /></button>{isOpen && <div className="px-5 pb-5 text-sm leading-6 text-[#515154]">{item.content || item.description}</div>}</div>; })}</div></section>;
 }
 
+function Tabs({ config }: { config: StructuredConfig }) {
+  const [active, setActive] = useState(0);
+  if (!config.tabs?.length) return <InvalidBlock />;
+  const selected = config.tabs[Math.min(active, config.tabs.length - 1)];
+  return <section className="my-10"><BlockTitle title={config.title} eyebrow="Explore" /><div className="border-b border-black/[0.08]" role="tablist" aria-label={config.title || "Content tabs"}>{config.tabs.map((tab, index) => <button key={tab.label} type="button" role="tab" aria-selected={active === index} onClick={() => setActive(index)} className={`mr-5 border-b-2 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007aff]/35 ${active === index ? "border-[#007aff] text-[#1d1d1f]" : "border-transparent text-[#86868b] hover:text-[#515154]"}`}>{tab.label}</button>)}</div><div className="pt-5"><h3 className="text-sm font-semibold tracking-[-0.015em] text-[#1d1d1f]">{selected.title || selected.label}</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-[#515154]">{selected.content}</p></div></section>;
+}
+
+function Cards({ config }: { config: StructuredConfig }) {
+  if (!config.cards?.length) return <InvalidBlock />;
+  return <section className="my-10"><BlockTitle title={config.title} eyebrow="Highlights" /><div className="grid gap-3 sm:grid-cols-2">{config.cards.map((card) => <article key={card.title} className="rounded-2xl border border-black/[0.08] bg-[#fbfbfd] p-5"><p className="text-[11px] font-medium text-[#86868b]">{card.eyebrow}</p><h3 className="mt-1 text-sm font-semibold tracking-[-0.015em] text-[#1d1d1f]">{card.title}</h3>{card.description && <p className="mt-2 text-sm leading-6 text-[#515154]">{card.description}</p>}{card.meta && <p className="mt-4 text-xs text-[#86868b]">{card.meta}</p>}</article>)}</div></section>;
+}
+
+function FileTree({ config }: { config: StructuredConfig }) {
+  if (!config.files?.length) return <InvalidBlock />;
+  return <section className="my-10"><BlockTitle title={config.title} eyebrow="Files" /><div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-[#fbfbfd] py-2 font-mono text-[13px]">{config.files.map((entry, index) => { const isFolder = entry.type === "folder"; const Icon = isFolder ? Folder : File; return <div key={`${entry.name}-${index}`} className="flex items-center gap-2 px-4 py-1.5 text-[#515154]" style={{ paddingLeft: `${1 + Math.max(entry.depth || 0, 0) * 1.25}rem` }}><Icon className={`size-3.5 shrink-0 ${isFolder ? "text-[#007aff]" : "text-[#86868b]"}`} strokeWidth={1.8} /><span>{entry.name}</span>{entry.detail && <span className="ml-auto font-sans text-xs text-[#86868b]">{entry.detail}</span>}</div>; })}</div></section>;
+}
+
+function Progress({ config }: { config: StructuredConfig }) {
+  if (!config.items?.length) return <InvalidBlock />;
+  return <section className="my-10"><BlockTitle title={config.title} eyebrow="Progress" /><div className="space-y-5">{config.items.map((item, index) => { const total = item.total || 100; const value = Math.min(Math.max(item.value || 0, 0), total); const percentage = Math.round((value / total) * 100); return <div key={`${item.title}-${index}`}><div className="mb-2 flex items-center justify-between gap-4 text-sm"><span className="font-medium text-[#1d1d1f]">{item.title}</span><span className="text-xs text-[#86868b]">{item.meta || `${percentage}%`}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-[#e5e5ea]"><div className="h-full rounded-full bg-[#007aff] transition-[width] duration-500" style={{ width: `${percentage}%` }} /></div>{item.description && <p className="mt-2 text-sm leading-6 text-[#515154]">{item.description}</p>}</div>; })}</div></section>;
+}
+
+function Checklist({ config }: { config: StructuredConfig }) {
+  if (!config.items?.length) return <InvalidBlock />;
+  return <section className="my-10"><BlockTitle title={config.title} eyebrow="Checklist" /><ul className="overflow-hidden rounded-2xl border border-black/[0.08]">{config.items.map((item, index) => <li key={`${item.title}-${index}`} className="flex gap-3 border-b border-black/[0.07] px-5 py-4 last:border-0"><span className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${item.checked ? "border-[#34c759] bg-[#34c759] text-white" : "border-[#c7c7cc]"}`}>{item.checked && <Check className="size-3" strokeWidth={3} />}</span><div><p className={`text-sm ${item.checked ? "text-[#86868b] line-through" : "font-medium text-[#1d1d1f]"}`}>{item.title}</p>{item.description && <p className="mt-1 text-sm leading-6 text-[#515154]">{item.description}</p>}</div></li>)}</ul></section>;
+}
+
+function Status({ config }: { config: StructuredConfig }) {
+  if (!config.items?.length) return <InvalidBlock />;
+  const colors = { complete: "bg-[#34c759]", current: "bg-[#007aff]", upcoming: "bg-[#d1d1d6]", blocked: "bg-[#ff9f0a]" };
+  return <section className="my-10"><BlockTitle title={config.title} eyebrow="Status" /><div className="grid gap-3 sm:grid-cols-2">{config.items.map((item, index) => { const state = item.status || "upcoming"; return <article key={`${item.title}-${index}`} className="rounded-2xl border border-black/[0.08] px-5 py-4"><div className="flex items-center gap-2"><span className={`size-2 rounded-full ${colors[state]}`} /><h3 className="text-sm font-semibold tracking-[-0.015em] text-[#1d1d1f]">{item.title}</h3></div>{item.description && <p className="mt-2 text-sm leading-6 text-[#515154]">{item.description}</p>}{item.meta && <p className="mt-3 text-xs text-[#86868b]">{item.meta}</p>}</article>; })}</div></section>;
+}
+
 export default function RichStructuredBlock({ type, configStr }: { type: BlockType; configStr: string }) {
   const config = useMemo<StructuredConfig | null>(() => { try { return JSON5.parse(configStr.replace(/^`+|`+$/g, "").trim()); } catch { return null; } }, [configStr]);
   if (!config) return <InvalidBlock />;
@@ -90,5 +126,11 @@ export default function RichStructuredBlock({ type, configStr }: { type: BlockTy
   if (type === "timeline") return <Timeline config={config} />;
   if (type === "steps") return <Steps config={config} />;
   if (type === "comparison") return <Comparison config={config} />;
-  return <Accordion config={config} />;
+  if (type === "accordion") return <Accordion config={config} />;
+  if (type === "tabs") return <Tabs config={config} />;
+  if (type === "cards") return <Cards config={config} />;
+  if (type === "filetree") return <FileTree config={config} />;
+  if (type === "progress") return <Progress config={config} />;
+  if (type === "checklist") return <Checklist config={config} />;
+  return <Status config={config} />;
 }

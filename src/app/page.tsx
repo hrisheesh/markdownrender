@@ -70,6 +70,70 @@ export default function MarkdownPlayground() {
 }
 \`\`\`
 
+\`\`\`tabs
+{
+  "title": "A flexible writing surface",
+  "tabs": [
+    { "label": "Overview", "content": "Keep the narrative clean and use structure only where it makes information faster to understand." },
+    { "label": "For models", "content": "The JSON5 syntax is concise, predictable, and easy for an LLM to generate or revise." },
+    { "label": "For readers", "content": "Responsive interactions stay subtle, clear, and accessible across every screen size." }
+  ]
+}
+\`\`\`
+
+\`\`\`cards
+{
+  "title": "Design principles",
+  "cards": [
+    { "eyebrow": "01", "title": "Useful by default", "description": "Choose form from content, not decoration.", "meta": "Clear hierarchy" },
+    { "eyebrow": "02", "title": "Quiet confidence", "description": "Use whitespace, typography, and restraint to create premium focus.", "meta": "Calm interface" }
+  ]
+}
+\`\`\`
+
+\`\`\`filetree
+{
+  "title": "Project structure",
+  "files": [
+    { "name": "src", "type": "folder" },
+    { "name": "app", "type": "folder", "depth": 1 },
+    { "name": "page.tsx", "depth": 2, "detail": "workspace" },
+    { "name": "components", "type": "folder", "depth": 1 },
+    { "name": "RichStructuredBlock.tsx", "depth": 2, "detail": "formats" }
+  ]
+}
+\`\`\`
+
+\`\`\`progress
+{
+  "title": "Release readiness",
+  "items": [
+    { "title": "Experience", "value": 92, "description": "The renderer has been refined across the core format set." },
+    { "title": "Documentation", "value": 68, "meta": "In progress" }
+  ]
+}
+\`\`\`
+
+\`\`\`checklist
+{
+  "title": "Launch checklist",
+  "items": [
+    { "title": "Validate rendering", "description": "Review the document across desktop and mobile.", "checked": true },
+    { "title": "Share the new vocabulary", "description": "Give authors a concise format reference.", "checked": false }
+  ]
+}
+\`\`\`
+
+\`\`\`status
+{
+  "title": "System health",
+  "items": [
+    { "title": "Renderer", "description": "All core formats are available.", "meta": "Operational", "status": "complete" },
+    { "title": "Format library", "description": "New-generation block vocabulary is expanding.", "meta": "In progress", "status": "current" }
+  ]
+}
+\`\`\`
+
 ## 1. Native Charts (Recharts)
 
 ### Area Chart (Smooth Gradients)

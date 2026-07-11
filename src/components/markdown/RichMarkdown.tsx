@@ -218,8 +218,8 @@ export default function RichMarkdown({
               return <RichChart configStr={code} />;
             }
 
-            if (["callout", "metrics", "timeline", "steps", "comparison", "accordion"].includes(language || "")) {
-              return <RichStructuredBlock type={language as "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion"} configStr={code} />;
+            if (["callout", "metrics", "timeline", "steps", "comparison", "accordion", "tabs", "cards", "filetree", "progress", "checklist", "status"].includes(language || "")) {
+              return <RichStructuredBlock type={language as "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion" | "tabs" | "cards" | "filetree" | "progress" | "checklist" | "status"} configStr={code} />;
             }
 
             if (language) {
