@@ -134,7 +134,105 @@ export default function MarkdownPlayground() {
 }
 \`\`\`
 
+\`\`\`quote
+{
+  "body": "The best interface is the one that lets the idea arrive before the interface does.",
+  "attribution": "Design principle",
+  "role": "Markdown renderer"
+}
+\`\`\`
+
+\`\`\`embed
+{
+  "kind": "document",
+  "title": "A safe, concise link preview",
+  "publisher": "Resource library",
+  "description": "Links, videos, and documents can be represented without embedding untrusted third-party content.",
+  "url": "https://developer.mozilla.org/en-US/docs/Web/Markdown"
+}
+\`\`\`
+
+\`\`\`image
+{
+  "title": "A refined visual gallery",
+  "layout": "gallery",
+  "images": [
+    { "src": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80", "alt": "Bright studio workspace", "caption": "A visual can sit naturally beside the written narrative." },
+    { "src": "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80", "alt": "Minimal modern office", "caption": "Use labels and captions when they add context." }
+  ]
+}
+\`\`\`
+
+\`\`\`map
+{
+  "title": "Launch locations",
+  "locations": [
+    { "name": "San Francisco", "detail": "Design partner", "x": 18, "y": 48 },
+    { "name": "London", "detail": "Early access", "x": 50, "y": 34 },
+    { "name": "Singapore", "detail": "Community", "x": 78, "y": 62 }
+  ]
+}
+\`\`\`
+
 ## 1. Native Charts (Recharts)
+
+### Next-generation chart types
+
+\`\`\`chart
+{
+  "type": "sparkline",
+  "title": "Weekly momentum",
+  "data": [{ "name": "Mon", "value": 18 }, { "name": "Tue", "value": 24 }, { "name": "Wed", "value": 21 }, { "name": "Thu", "value": 38 }, { "name": "Fri", "value": 46 }],
+  "keys": ["value"]
+}
+\`\`\`
+
+\`\`\`chart
+{
+  "type": "gauge",
+  "title": "Experience score",
+  "data": [{ "name": "Score", "value": 86 }],
+  "keys": ["value"],
+  "max": 100
+}
+\`\`\`
+
+\`\`\`chart
+{
+  "type": "heatmap",
+  "title": "Engagement by cohort",
+  "data": [{ "name": "Week 1", "Mon": 82, "Tue": 64, "Wed": 48 }, { "name": "Week 2", "Mon": 71, "Tue": 55, "Wed": 39 }, { "name": "Week 3", "Mon": 58, "Tue": 42, "Wed": 26 }],
+  "keys": ["Mon", "Tue", "Wed"],
+  "max": 100
+}
+\`\`\`
+
+\`\`\`chart
+{
+  "type": "funnel",
+  "title": "Activation funnel",
+  "data": [{ "name": "Visitors", "value": 1200 }, { "name": "Signups", "value": 640 }, { "name": "Activated", "value": 380 }, { "name": "Subscribed", "value": 160 }],
+  "keys": ["value"]
+}
+\`\`\`
+
+\`\`\`chart
+{
+  "type": "scatter",
+  "title": "Speed and satisfaction",
+  "data": [{ "name": "A", "speed": 18, "satisfaction": 72 }, { "name": "B", "speed": 31, "satisfaction": 84 }, { "name": "C", "speed": 42, "satisfaction": 63 }, { "name": "D", "speed": 55, "satisfaction": 91 }],
+  "keys": ["speed", "satisfaction"]
+}
+\`\`\`
+
+\`\`\`chart
+{
+  "type": "waterfall",
+  "title": "Monthly movement",
+  "data": [{ "name": "Base", "value": 120 }, { "name": "Growth", "value": 42 }, { "name": "Churn", "value": -18 }, { "name": "Expansion", "value": 28 }],
+  "keys": ["value"]
+}
+\`\`\`
 
 ### Area Chart (Smooth Gradients)
 \`\`\`chart

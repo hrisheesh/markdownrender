@@ -2,9 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import JSON5 from "json5";
-import { Check, ChevronDown, CircleAlert, CircleCheck, File, Folder, Info, Lightbulb } from "lucide-react";
+import { Check, ChevronDown, CircleAlert, CircleCheck, File, Folder, Info, Lightbulb, Quote } from "lucide-react";
 
-type BlockType = "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion" | "tabs" | "cards" | "filetree" | "progress" | "checklist" | "status";
+type BlockType = "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion" | "tabs" | "cards" | "filetree" | "progress" | "checklist" | "status" | "quote";
 
 type StructuredConfig = {
   title?: string;
@@ -17,6 +17,8 @@ type StructuredConfig = {
   tabs?: { label: string; title?: string; content: string }[];
   cards?: { title: string; description?: string; meta?: string; eyebrow?: string }[];
   files?: { name: string; type?: "file" | "folder"; detail?: string; depth?: number }[];
+  attribution?: string;
+  role?: string;
 };
 
 const toneStyles = {
@@ -118,6 +120,11 @@ function Status({ config }: { config: StructuredConfig }) {
   return <section className="my-10"><BlockTitle title={config.title} eyebrow="Status" /><div className="grid gap-3 sm:grid-cols-2">{config.items.map((item, index) => { const state = item.status || "upcoming"; return <article key={`${item.title}-${index}`} className="rounded-2xl border border-black/[0.08] px-5 py-4"><div className="flex items-center gap-2"><span className={`size-2 rounded-full ${colors[state]}`} /><h3 className="text-sm font-semibold tracking-[-0.015em] text-[#1d1d1f]">{item.title}</h3></div>{item.description && <p className="mt-2 text-sm leading-6 text-[#515154]">{item.description}</p>}{item.meta && <p className="mt-3 text-xs text-[#86868b]">{item.meta}</p>}</article>; })}</div></section>;
 }
 
+function PullQuote({ config }: { config: StructuredConfig }) {
+  if (!config.body) return <InvalidBlock />;
+  return <figure className="my-10 border-y border-black/[0.08] py-7 text-center sm:py-9"><Quote className="mx-auto size-5 text-[#007aff]" strokeWidth={1.7} aria-hidden="true" /><blockquote className="mx-auto mt-4 max-w-2xl text-[22px] font-medium tracking-[-0.035em] text-[#1d1d1f] sm:text-[27px]">“{config.body}”</blockquote>{config.attribution && <figcaption className="mt-4 text-sm text-[#6e6e73]">{config.attribution}{config.role && <span className="text-[#86868b]"> · {config.role}</span>}</figcaption>}</figure>;
+}
+
 export default function RichStructuredBlock({ type, configStr }: { type: BlockType; configStr: string }) {
   const config = useMemo<StructuredConfig | null>(() => { try { return JSON5.parse(configStr.replace(/^`+|`+$/g, "").trim()); } catch { return null; } }, [configStr]);
   if (!config) return <InvalidBlock />;
@@ -132,5 +139,6 @@ export default function RichStructuredBlock({ type, configStr }: { type: BlockTy
   if (type === "filetree") return <FileTree config={config} />;
   if (type === "progress") return <Progress config={config} />;
   if (type === "checklist") return <Checklist config={config} />;
-  return <Status config={config} />;
+  if (type === "status") return <Status config={config} />;
+  return <PullQuote config={config} />;
 }

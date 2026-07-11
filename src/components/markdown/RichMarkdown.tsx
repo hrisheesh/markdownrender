@@ -10,6 +10,7 @@ import remarkMath from "remark-math";
 
 import RichChart from "./RichChart";
 import RichCodeBlock from "./RichCodeBlock";
+import RichMediaBlock from "./RichMediaBlock";
 import RichStructuredBlock from "./RichStructuredBlock";
 
 const RichMermaid = dynamic(() => import("./RichMermaid"), { ssr: false });
@@ -218,8 +219,12 @@ export default function RichMarkdown({
               return <RichChart configStr={code} />;
             }
 
-            if (["callout", "metrics", "timeline", "steps", "comparison", "accordion", "tabs", "cards", "filetree", "progress", "checklist", "status"].includes(language || "")) {
-              return <RichStructuredBlock type={language as "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion" | "tabs" | "cards" | "filetree" | "progress" | "checklist" | "status"} configStr={code} />;
+            if (["embed", "image", "map"].includes(language || "")) {
+              return <RichMediaBlock type={language as "embed" | "image" | "map"} configStr={code} />;
+            }
+
+            if (["callout", "metrics", "timeline", "steps", "comparison", "accordion", "tabs", "cards", "filetree", "progress", "checklist", "status", "quote"].includes(language || "")) {
+              return <RichStructuredBlock type={language as "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion" | "tabs" | "cards" | "filetree" | "progress" | "checklist" | "status" | "quote"} configStr={code} />;
             }
 
             if (language) {

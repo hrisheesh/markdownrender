@@ -1,36 +1,169 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Markdown Render
 
-## Getting Started
+An expressive Markdown workspace for turning plain text into polished, interactive documents. Write in the editor, preview instantly, and use a small structured-block vocabulary when prose is not the clearest way to communicate an idea.
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js) ![React](https://img.shields.io/badge/React-19-149eca?logo=react) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss)
+
+## Why it exists
+
+Most Markdown previews stop at headings, tables, and code. Markdown Render keeps that simplicity while adding a deliberate visual language for the moments where a reader needs to compare, measure, decide, or follow a sequence.
+
+- A calm, premium writing surface with responsive editor and preview panels
+- Familiar CommonMark, GitHub-flavored Markdown, KaTeX, Mermaid, tables, task lists, images, and highlighted code
+- Rich blocks expressed as compact JSON5 inside normal fenced code blocks
+- Smooth, readable charts designed for comprehension rather than dashboard noise
+- Safe link previews that do not embed third-party pages
+- Sanitized rendered Markdown and defensive parsing for custom blocks
+
+## Quick start
 
 ```bash
+git clone https://github.com/hrisheesh/markdownrender.git
+cd markdownrender
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The included document is a live format gallery: edit its Markdown and the preview updates immediately.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For production:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## The format vocabulary
 
-To learn more about Next.js, take a look at the following resources:
+| Category | Formats |
+| --- | --- |
+| Narrative | CommonMark, GFM tables and tasks, blockquotes, links, images, citations |
+| Technical | Syntax-highlighted code, Mermaid diagrams, KaTeX math |
+| Structure | callout, metrics, timeline, steps, comparison, accordion, tabs, cards |
+| Progress | filetree, progress, checklist, status, quote |
+| Media | embed, image gallery / before-after, map |
+| Data | bar, line, area, pie, radar, composed, sparkline, scatter, funnel, gauge, heatmap, cohort, waterfall |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Every rich format is generated from a fenced code block. This is intentional: the source remains easy to author, easy for an LLM to generate, version-control friendly, and fully portable as Markdown.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Examples
 
-## Deploy on Vercel
+### A focused callout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+````md
+```callout
+{
+  tone: "insight",
+  title: "A clearer document vocabulary",
+  body: "Use structure whenever a paragraph is not the clearest way to communicate the idea."
+}
+```
+````
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### A compact metric group
+
+````md
+```metrics
+{
+  title: "This week",
+  metrics: [
+    { label: "Active users", value: "24.8K", change: "+12.4%", detail: "vs last week" },
+    { label: "Conversion", value: "6.2%", change: "+0.8%", detail: "vs last week" }
+  ]
+}
+```
+````
+
+### A smooth chart
+
+````md
+```chart
+{
+  type: "area",
+  title: "Weekly momentum",
+  data: [
+    { name: "Mon", value: 18 },
+    { name: "Tue", value: 24 },
+    { name: "Wed", value: 21 },
+    { name: "Thu", value: 38 },
+    { name: "Fri", value: 46 }
+  ],
+  keys: ["value"]
+}
+```
+````
+
+### A readable funnel
+
+````md
+```chart
+{
+  type: "funnel",
+  title: "Activation funnel",
+  data: [
+    { name: "Visitors", value: 1200 },
+    { name: "Signups", value: 640 },
+    { name: "Activated", value: 380 },
+    { name: "Subscribed", value: 160 }
+  ],
+  keys: ["value"]
+}
+```
+````
+
+### A safe link preview
+
+````md
+```embed
+{
+  kind: "document",
+  title: "A concise resource preview",
+  publisher: "Resource library",
+  description: "Represent an external resource without embedding untrusted content.",
+  url: "https://developer.mozilla.org/en-US/docs/Web/Markdown"
+}
+```
+````
+
+## Design principles
+
+**Structure follows content.** A rich block earns its space by making a decision, relationship, or sequence faster to understand.
+
+**Quiet confidence.** The interface favors typography, whitespace, subtle borders, and measured motion over decoration.
+
+**Data should explain itself.** Charts preserve context through direct labels, restrained color, clear comparisons, and sensible scale—not visual spectacle.
+
+**Safe by default.** Markdown HTML is sanitized. Custom block configurations are parsed defensively. External previews are links, never executable embeds.
+
+## Architecture
+
+```text
+src/
+├── app/page.tsx                       # Playground and live example document
+└── components/markdown/
+    ├── RichMarkdown.tsx               # Markdown renderer and fenced-block routing
+    ├── RichChart.tsx                  # Recharts and bespoke data visualizations
+    ├── RichStructuredBlock.tsx        # Content and workflow blocks
+    ├── RichMediaBlock.tsx             # Safe embeds, image layouts, map summaries
+    ├── RichMermaid.tsx                # Client-side Mermaid rendering
+    └── RichCodeBlock.tsx              # Syntax-highlighted code
+```
+
+The renderer uses `react-markdown` with GFM and math plugins, a sanitization schema, `recharts` for native charts, Mermaid for diagrams, and JSON5 for approachable rich-block source.
+
+## Development
+
+```bash
+npm run lint
+npm run build
+```
+
+The project is intentionally dependency-light and does not require a backend, environment variables, or a database to run locally.
+
+## Contributing
+
+Keep additions readable in source and restrained in output. A new block should have a clear information purpose, graceful malformed-input behavior, responsive layout, keyboard-accessible interaction where relevant, and a representative example in the playground.
+
+## License
+
+This repository does not currently declare a license.
