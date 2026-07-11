@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/core.tsx", "src/server.ts"],
+  entry: ["src/index.ts", "src/core.tsx", "src/server.ts", "src/ai/index.ts"],
   clean: true,
   dts: {
     compilerOptions: {

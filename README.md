@@ -91,6 +91,27 @@ export function DocumentPreview() {
 }
 ```
 
+### Stream an AI response
+
+Use the client-only AI entry point to keep completed Markdown sections stable while text is arriving. Fenced rich blocks remain pending until their closing fence is received, so incomplete JSON never reaches an interactive renderer.
+
+```tsx
+import { StreamingRichMarkdown, useMarkdownFlowStream } from "markdown-flow/ai";
+import "markdown-flow/styles.css";
+
+function AssistantAnswer() {
+  const stream = useMarkdownFlowStream();
+
+  // In an SSE or provider callback:
+  // stream.append(delta);
+  // stream.complete();
+
+  return <StreamingRichMarkdown stream={stream} renderPolicy={{ allowedBlocks: ["callout", "chart"] }} />;
+}
+```
+
+`useMarkdownFlowStream()` also accepts provider-neutral text, citation, dataset, error, and complete events through `stream.apply(event)`. It exposes `append`, `replace`, `complete`, `fail`, `cancel`, and `retry` controls. Use the hook for incremental streaming; for a simple accumulated string, pass `content` directly to `StreamingRichMarkdown`.
+
 ### Lean Markdown-only entry
 
 When an experience only needs responsive, sanitized GitHub-flavored Markdown, use the dedicated core entry. It excludes rich blocks, charts, Mermaid, KaTeX, and syntax highlighting from the imported runtime while leaving the default package behavior unchanged.

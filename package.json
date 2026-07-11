@@ -46,6 +46,11 @@
       "import": "./dist/server.mjs",
       "require": "./dist/server.js"
     },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "import": "./dist/ai/index.mjs",
+      "require": "./dist/ai/index.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./core.css": "./dist/core.css",
     "./package.json": "./package.json"

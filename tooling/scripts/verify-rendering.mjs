@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const { RichMarkdown } = require(root);
 const { validateMarkdownFlowBlock } = require(root);
+const { MarkdownFlowStreamParser, StreamingRichMarkdown } = require(`${root}/dist/ai/index.js`);
 const { RichMarkdownCore } = require(`${root}/dist/core.js`);
 const { StaticMarkdown } = require(`${root}/dist/server.js`);
 
@@ -59,6 +60,20 @@ const strictPolicyMarkup = render(RichMarkdown, {
 });
 assert.match(strictPolicyMarkup, /could not be rendered safely/);
 assert.match(strictPolicyMarkup, /Validated output/);
+
+const streamParser = new MarkdownFlowStreamParser();
+const streamedContent = "Intro\n\n```callout\n{\"title\":\"Ready\",\"body\":\"Rendered once complete.\"}\n```\n\nDone.";
+for (const character of streamedContent) streamParser.append(character);
+streamParser.finish();
+assert.equal(streamParser.getSegments().map((segment) => segment.content).join(""), streamedContent);
+assert.equal(streamParser.getSegments().filter((segment) => segment.type === "block").length, 1);
+
+const streamingMarkup = render(StreamingRichMarkdown, {
+  content: streamedContent,
+  status: "complete",
+  renderPolicy: { allowedBlocks: ["callout"] },
+});
+assert.match(streamingMarkup, /Rendered once complete/);
 
 const a11yMarkup = render(RichMarkdown, {
   content: "```accordion\n{ title: 'Questions', items: [{ title: 'Is it accessible?', content: 'Yes.', open: true }] }\n```\n\n```progress\n{ items: [{ title: 'Release', value: 75, total: 100 }] }\n```",
