@@ -52,7 +52,13 @@ Markdown is a great writing interface. Markdown Flow keeps it that way, then add
 npm install markdown-flow
 ```
 
-## What’s new in 0.1.2
+## What’s new in 0.1.3
+
+`0.1.3` makes Markdown Flow ready for AI applications: provider-neutral response contracts, safe incremental streaming, strict block validation, trusted datasets and artifacts, citations, and privacy-safe telemetry. The package keeps completed sections stable while model output arrives and renders rich blocks only after their fence and configuration are complete.
+
+Source maps are generated for local development but are intentionally excluded from the published npm package to keep installs smaller. This does not change runtime behavior; consumers who need package-level source-map debugging can build from source.
+
+### 0.1.2 highlights
 
 `0.1.2` launches Markdown Flow as a clean, unscoped package name and makes the renderer more adaptable and dependable. The complete experience stays at the package root:
 
@@ -487,7 +493,7 @@ Treat model output as untrusted at every boundary. Use `renderPolicy` to allow o
 
 `telemetry` on `RichMarkdown` and `StreamingRichMarkdown` receives privacy-safe block, fallback, stream, render-duration, and resolver-outcome events. The package never includes model text, URLs, citation contents, dataset rows, or resolver messages in those events. Attach only a host-generated trace ID or non-sensitive surface name; apply sampling and retention rules in your telemetry system.
 
-Before release, replay captured provider streams (including fence delimiters split across chunks), check pending/error states with a screen reader, and enforce `npm run check:size`. The package budgets the AI entry point at 40 kB ESM / 45 kB CommonJS and keeps completed stream segments stable while only the trailing segment changes. Moderate prompts and completions before display, retain prompts/responses and telemetry only as long as required, isolate resolver caches and authorization by tenant and user, and alert on invalid-block, fallback, denial, and provider-error rates.
+Before release, replay captured provider streams (including fence delimiters split across chunks), check pending/error states with a screen reader, and enforce `npm run check:size`. The package budgets the AI entry point at 40 kB ESM / 130 kB CommonJS; CommonJS contains the renderer required for streaming output, while ESM consumers receive shared chunks. Completed stream segments stay stable while only the trailing segment changes. Moderate prompts and completions before display, retain prompts/responses and telemetry only as long as required, isolate resolver caches and authorization by tenant and user, and alert on invalid-block, fallback, denial, and provider-error rates.
 
 ### Protocol migration policy
 
