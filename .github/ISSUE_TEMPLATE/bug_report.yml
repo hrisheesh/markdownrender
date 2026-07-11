@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible problem with the package or playground.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a problem. Please remove any private content from Markdown examples.
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: Include the installed `@hrisheesh/markdown-render` version.
+      placeholder: 0.1.1
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - React
+        - Next.js App Router
+        - Next.js Pages Router
+        - Vite
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest Markdown and component usage that reproduces the issue.
+      render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true

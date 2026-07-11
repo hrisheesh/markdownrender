@@ -1,21 +1,61 @@
 {
-  "name": "markdownrender",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@hrisheesh/markdown-render",
+  "version": "0.1.1",
+  "description": "A polished, interactive Markdown renderer for React and Next.js.",
+  "license": "UNLICENSED",
+  "keywords": [
+    "markdown",
+    "react",
+    "nextjs",
+    "renderer",
+    "rich-text",
+    "charts",
+    "mermaid",
+    "katex"
+  ],
+  "homepage": "https://github.com/hrisheesh/markdownrender#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrisheesh/markdownrender.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hrisheesh/markdownrender/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "./dist/styles.css"
+  ],
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:package": "tsup && node scripts/build-package-styles.mjs",
+    "prepack": "npm run build:package"
   },
   "dependencies": {
     "framer-motion": "^12.42.0",
     "json5": "^2.2.3",
+    "katex": "^0.17.0",
     "lucide-react": "^1.21.0",
     "mermaid": "^11.16.0",
-    "next": "16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.1",
     "recharts": "^3.9.0",
@@ -32,7 +72,21 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "next": "16.2.9",
+    "postcss": "^8.5.16",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "tailwindcss": "^4",
+    "tsup": "^8.5.1",
     "typescript": "^5"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
   }
 }

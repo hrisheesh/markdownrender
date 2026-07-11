@@ -1,7 +1,6 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -12,8 +11,7 @@ import RichChart from "./RichChart";
 import RichCodeBlock from "./RichCodeBlock";
 import RichMediaBlock from "./RichMediaBlock";
 import RichStructuredBlock from "./RichStructuredBlock";
-
-const RichMermaid = dynamic(() => import("./RichMermaid"), { ssr: false });
+import RichMermaid from "./RichMermaid";
 
 export interface Citation {
   id: string;
@@ -115,15 +113,20 @@ function InlineWithCitations({
   return <>{renderNode(children, "inline")}</>;
 }
 
-export default function RichMarkdown({
-  content,
-  citations,
-}: {
+export interface RichMarkdownProps {
+  /** Markdown source, including optional rich fenced blocks. */
   content: string;
+  /** Source references rendered as accessible inline citation badges. */
   citations?: Citation[];
-}) {
+}
+
+/**
+ * Renders safe Markdown plus Markdown Render's chart, media, and structured blocks.
+ * Import `@hrisheesh/markdown-render/styles.css` once in the consuming application.
+ */
+export default function RichMarkdown({ content, citations }: RichMarkdownProps) {
   return (
-    <div className="chat-markdown min-w-0 text-[15px] font-normal leading-7 text-charcoal sm:text-[16px] sm:leading-8">
+    <div className="markdown-render chat-markdown min-w-0 text-[15px] font-normal leading-7 text-charcoal sm:text-[16px] sm:leading-8">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[

@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest a package improvement or rich document format.
+title: "feature: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What is hard to express with the package today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or Markdown shape
+      description: Show a small example when possible.
+      render: md
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
