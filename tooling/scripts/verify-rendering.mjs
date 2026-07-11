@@ -14,6 +14,8 @@ const {
   createMarkdownFlowInstructions,
   markdownFlowResponseSchema,
   normalizeMarkdownFlowStreamChunk,
+  createMarkdownFlowArtifactRegistry,
+  validateMarkdownFlowArtifactBlock,
 } = require(`${root}/dist/ai/index.js`);
 const { RichMarkdownCore } = require(`${root}/dist/core.js`);
 const { StaticMarkdown } = require(`${root}/dist/server.js`);
@@ -75,6 +77,43 @@ assert.match(
   ).reason,
   /outside the approved dataset schema/,
 );
+
+const artifacts = createMarkdownFlowArtifactRegistry([{
+  name: "customer-health",
+  version: "1",
+  schema: {
+    parse(input) {
+      return input && typeof input === "object" && typeof input.accountId === "string"
+        ? { valid: true, value: input }
+        : { valid: false, reason: "accountId is required." };
+    },
+  },
+  render: ({ value }) => React.createElement("div", null, value.accountId),
+  fallback: ({ reason }) => React.createElement("div", null, reason),
+}]);
+assert.equal(artifacts.get("customer-health", "1")?.name, "customer-health");
+assert.equal(
+  validateMarkdownFlowArtifactBlock(
+    '{"name":"customer-health","version":"1","input":{"accountId":"acme"}}',
+    artifacts,
+    { allowedArtifacts: ["customer-health"], allowedArtifactVersions: { "customer-health": ["1"] } },
+  ).valid,
+  true,
+);
+assert.match(
+  validateMarkdownFlowArtifactBlock(
+    '{"name":"customer-health","version":"2","input":{"accountId":"acme"}}',
+    artifacts,
+    { allowedArtifacts: ["customer-health"], allowedArtifactVersions: { "customer-health": ["1"] } },
+  ).reason,
+  /version is not permitted/,
+);
+const invalidArtifactMarkup = render(RichMarkdown, {
+  content: "```artifact\n{\"name\":\"customer-health\",\"version\":\"1\",\"input\":{}}\n```",
+  artifactRegistry: artifacts,
+  renderPolicy: { allowedArtifacts: ["customer-health"], allowedArtifactVersions: { "customer-health": ["1"] } },
+});
+assert.match(invalidArtifactMarkup, /accountId is required/);
 assert.match(
   validateMarkdownFlowBlock(
     "chart",

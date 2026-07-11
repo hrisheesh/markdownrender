@@ -28,6 +28,21 @@ export type {
   MarkdownFlowResolverResult,
   MarkdownFlowResolverStatus,
 } from "./data";
+export { createMarkdownFlowArtifactRegistry, validateMarkdownFlowArtifactBlock } from "./artifacts";
+export type {
+  MarkdownFlowArtifactBlockValidationResult,
+  MarkdownFlowArtifactDefinition,
+  MarkdownFlowArtifactFallbackProps,
+  MarkdownFlowArtifactRegistry,
+  MarkdownFlowArtifactRenderProps,
+  MarkdownFlowArtifactSchema,
+  MarkdownFlowArtifactValidationFailure,
+  MarkdownFlowArtifactValidationResult,
+  MarkdownFlowArtifactValidationSuccess,
+  MarkdownFlowValidatedArtifact,
+} from "./artifacts";
+export { MarkdownFlowArtifactState } from "../components/markdown/RichArtifactBlock";
+export type { MarkdownFlowArtifactStateProps } from "../components/markdown/RichArtifactBlock";
 export { validateMarkdownFlowBlock } from "./validation";
 export type { MarkdownFlowBlockValidationResult } from "./validation";
 export {

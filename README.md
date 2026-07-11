@@ -379,6 +379,58 @@ export function ReleaseNotes({ content }: { content: string }) {
 
 `components` is also available on `RichMarkdownCore` and `StaticMarkdown`. Overrides are applied after the package defaults, while Markdown source is still sanitized before any override receives it.
 
+### Safe custom AI artifacts
+
+For model-generated business UI, use the versioned artifact registry from `markdown-flow/ai` rather than `blockRenderers`. The model emits one strict JSON envelope in an `artifact` fence; it can select only a name and version that the application has registered and explicitly permitted. It never selects an arbitrary React component or executes generated code.
+
+```tsx
+import {
+  createMarkdownFlowArtifactRegistry,
+  MarkdownFlowArtifactState,
+  type MarkdownFlowArtifactDefinition,
+} from "markdown-flow/ai";
+
+const customerHealth: MarkdownFlowArtifactDefinition<{ accountId: string }, CustomerHealth> = {
+  name: "customer-health",
+  version: "1",
+  schema: {
+    parse(input) {
+      if (!input || typeof input !== "object" || typeof (input as { accountId?: unknown }).accountId !== "string") {
+        return { valid: false, reason: "accountId is required." };
+      }
+      return { valid: true, value: { accountId: (input as { accountId: string }).accountId } };
+    },
+  },
+  // Keep tenant and user authorization in this host-owned resolver.
+  resolver: async ({ accountId }) => api.getAuthorizedCustomerHealth(accountId),
+  render: ({ value }) => <CustomerHealthCard account={value} />,
+  fallback: ({ state, reason, retry }) => <MarkdownFlowArtifactState state={state} message={reason} onRetry={retry} />,
+};
+
+const artifacts = createMarkdownFlowArtifactRegistry([customerHealth]);
+
+<RichMarkdown
+  content={content}
+  artifactRegistry={artifacts}
+  renderPolicy={{
+    allowedArtifacts: ["customer-health"],
+    allowedArtifactVersions: { "customer-health": ["1"] },
+  }}
+/>;
+```
+
+The corresponding model output is compact, strict JSON:
+
+````md
+```artifact
+{"name":"customer-health","version":"1","input":{"accountId":"acme"}}
+```
+````
+
+Every registered artifact requires a schema, renderer, and fallback; its resolver is optional. The registry rejects duplicate `name@version` pairs. A render policy is required for model artifacts, and both artifact names and versions are denied unless allowlisted. `authorize` offers an additional synchronous artifact-level permission check, while resolver authorization must still be enforced by your server or trusted application layer.
+
+Treat a changed input contract or changed visual meaning as a new artifact version. Keep earlier versions registered while old conversations, saved responses, or retries can still be displayed. To deprecate a version, remove it from `allowedArtifactVersions` first, migrate or expire retained content, then remove it from the registry. Test valid and invalid envelopes, permission-denied, loading, unavailable, resolver-error, retry, and keyboard/screen-reader states. Never rely on an artifact ID as authorization; authorize every resolver request on the host.
+
 ## Styling
 
 The package ships its compiled renderer styles and does not require a Tailwind configuration in your application. Component-specific rules are scoped to `.markdown-render`; import the stylesheet once where global styles are allowed:

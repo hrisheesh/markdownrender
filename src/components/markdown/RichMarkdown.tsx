@@ -10,7 +10,9 @@ import remarkMath from "remark-math";
 import { DEFAULT_MARKDOWN_FLOW_RENDER_POLICY, isMarkdownFlowBlockType, type MarkdownFlowRenderPolicy } from "../../ai/protocol";
 import { useMarkdownFlowCitations, type MarkdownFlowCitationResolver, type MarkdownFlowDatasetResolver } from "../../ai/data";
 import { validateMarkdownFlowBlock } from "../../ai/validation";
+import { validateMarkdownFlowArtifactBlock, type MarkdownFlowArtifactRegistry } from "../../ai/artifacts";
 import RichBlockValidationError from "./RichBlockValidationError";
+import RichArtifactBlock from "./RichArtifactBlock";
 import RichChart from "./RichChart";
 import RichDatasetChart from "./RichDatasetChart";
 import RichCodeBlock from "./RichCodeBlock";
@@ -131,6 +133,8 @@ export interface RichMarkdownProps {
   blockRenderers?: RichBlockRenderers;
   /** Enables strict validation and host-controlled limits for Markdown Flow's built-in AI blocks. */
   renderPolicy?: MarkdownFlowRenderPolicy;
+  /** Host-owned, versioned business artifacts available to strict AI output. */
+  artifactRegistry?: MarkdownFlowArtifactRegistry;
   /** Resolves host-authorized chart data referenced by an AI block. */
   datasetResolver?: MarkdownFlowDatasetResolver;
   /** Resolves source metadata when a narrative references a citation not sent in its envelope. */
@@ -162,11 +166,11 @@ function hasDatasetReference(code: string): boolean {
   }
 }
 
-export default function RichMarkdown({ content, citations, blockRenderers, renderPolicy, datasetResolver, citationResolver, components }: RichMarkdownProps) {
+export default function RichMarkdown({ content, citations, blockRenderers, renderPolicy, artifactRegistry, datasetResolver, citationResolver, components }: RichMarkdownProps) {
   const citationIds = React.useMemo(() => Array.from(content.matchAll(/\[([A-Za-z0-9_-]+)\]/g), (match) => match[1]), [content]);
   const resolvedCitations = useMarkdownFlowCitations(citationIds, citations, citationResolver);
   const containsTooManyAiBlocks = renderPolicy
-    && (content.match(/^```(?:callout|metrics|timeline|steps|comparison|accordion|tabs|cards|filetree|progress|checklist|status|quote|chart|mermaid|embed|image|map)\s*$/gm)?.length ?? 0)
+    && (content.match(/^```(?:callout|metrics|timeline|steps|comparison|accordion|tabs|cards|filetree|progress|checklist|status|quote|chart|mermaid|embed|image|map|artifact)\s*$/gm)?.length ?? 0)
       > (renderPolicy.maxBlocks ?? DEFAULT_MARKDOWN_FLOW_RENDER_POLICY.maxBlocks);
 
   return (
@@ -257,6 +261,18 @@ export default function RichMarkdown({ content, citations, blockRenderers, rende
           code: ({ children, className }) => {
             const language = /language-([\w-]+)/.exec(className || "")?.[1];
             const code = String(children).replace(/\n$/, "");
+
+            if (language === "artifact" && (artifactRegistry || renderPolicy)) {
+              if (containsTooManyAiBlocks) return <RichBlockValidationError reason="This response exceeds the configured number of AI blocks." />;
+              const validation = validateMarkdownFlowArtifactBlock(code, artifactRegistry, renderPolicy);
+              if (!validation.valid) {
+                if (validation.definition) {
+                  return <>{validation.definition.fallback({ name: validation.definition.name, version: validation.definition.version, reason: validation.reason, state: validation.state ?? "invalid" })}</>;
+                }
+                return <RichBlockValidationError reason={validation.reason} />;
+              }
+              return <RichArtifactBlock artifact={validation.artifact} />;
+            }
 
             if (language && renderPolicy && isMarkdownFlowBlockType(language)) {
               if (containsTooManyAiBlocks) return <RichBlockValidationError reason="This response exceeds the configured number of AI blocks." />;

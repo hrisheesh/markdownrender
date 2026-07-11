@@ -88,6 +88,10 @@ export type MarkdownFlowStreamEvent =
  */
 export interface MarkdownFlowRenderPolicy {
   allowedBlocks?: readonly MarkdownFlowBlockType[];
+  /** Explicitly registered business artifacts the model may request. */
+  allowedArtifacts?: readonly string[];
+  /** Optional version allowlists for each permitted business artifact. */
+  allowedArtifactVersions?: Readonly<Record<string, readonly string[]>>;
   allowedDatasetIds?: readonly string[];
   /** Per-dataset fields that model output is allowed to select. */
   allowedDatasetFields?: Readonly<Record<string, readonly string[]>>;
@@ -100,6 +104,8 @@ export interface MarkdownFlowRenderPolicy {
 
 export const DEFAULT_MARKDOWN_FLOW_RENDER_POLICY: Readonly<Required<MarkdownFlowRenderPolicy>> = {
   allowedBlocks: MARKDOWN_FLOW_LLM_BLOCK_TYPES,
+  allowedArtifacts: [],
+  allowedArtifactVersions: {},
   allowedDatasetIds: [],
   allowedDatasetFields: {},
   maxBlockCharacters: 20_000,
