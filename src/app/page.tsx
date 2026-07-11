@@ -7,6 +7,69 @@ import RichMarkdown from "@/components/markdown/RichMarkdown";
 export default function MarkdownPlayground() {
   const [markdown, setMarkdown] = useState<string>(`# Rich Markdown Renderer Test
 
+## Structured blocks
+
+\`\`\`callout
+{
+  "tone": "insight",
+  "title": "A clearer document vocabulary",
+  "body": "Use a structured block whenever a paragraph is not the clearest way to communicate the idea."
+}
+\`\`\`
+
+\`\`\`metrics
+{
+  "title": "This week",
+  "metrics": [
+    { "label": "Active users", "value": "24.8K", "change": "+12.4%", "detail": "vs last week" },
+    { "label": "Conversion", "value": "6.2%", "change": "+0.8%", "detail": "vs last week" },
+    { "label": "Response time", "value": "142ms", "change": "-18ms", "detail": "p95" }
+  ]
+}
+\`\`\`
+
+\`\`\`timeline
+{
+  "title": "Launch plan",
+  "items": [
+    { "date": "May 06", "title": "Design review", "description": "Align the core experience.", "status": "complete" },
+    { "date": "May 14", "title": "Private beta", "description": "Invite the first customers.", "status": "current" },
+    { "date": "May 28", "title": "Public release", "description": "Open the experience to everyone.", "status": "upcoming" }
+  ]
+}
+\`\`\`
+
+\`\`\`steps
+{
+  "title": "Getting started",
+  "items": [
+    { "title": "Define the intent", "description": "Give the model a clear outcome." },
+    { "title": "Choose the right block", "description": "Use the format that makes the content easiest to scan." }
+  ]
+}
+\`\`\`
+
+\`\`\`comparison
+{
+  "title": "Plans",
+  "columns": ["Personal", "Team"],
+  "rows": [
+    { "label": "Rich markdown", "values": [true, true] },
+    { "label": "Shared workspaces", "values": [false, true] }
+  ]
+}
+\`\`\`
+
+\`\`\`accordion
+{
+  "title": "Frequently asked questions",
+  "items": [
+    { "title": "Can an LLM generate these?", "content": "Yes. Each block is plain JSON5 inside a familiar fenced Markdown block.", "open": true },
+    { "title": "Can I mix blocks with prose?", "content": "Yes. Use them anywhere in the document." }
+  ]
+}
+\`\`\`
+
 ## 1. Native Charts (Recharts)
 
 ### Area Chart (Smooth Gradients)
@@ -279,15 +342,15 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
       >
         Skip to editor
       </a>
-      <header className="shrink-0 border-b border-hairline/80 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6">
-        <div className="mx-auto flex w-full max-w-[112rem] flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-ink text-white shadow-sm">
-              <FileText size={16} strokeWidth={2.25} aria-hidden="true" />
+      <header className="shrink-0 border-b border-black/[0.08] bg-white/75 px-5 py-3.5 backdrop-blur-xl sm:px-8">
+        <div className="mx-auto flex w-full max-w-[120rem] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#f0f5ff] text-[#007aff]">
+              <FileText size={14} strokeWidth={1.8} aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-semibold tracking-[-0.02em] text-ink sm:text-base">Untitled document</h1>
-              <p className="text-xs text-steel">Markdown workspace</p>
+              <h1 className="text-[13px] font-semibold tracking-[-0.015em] text-ink">Untitled document</h1>
+              <p className="mt-0.5 text-[11px] text-steel">Markdown workspace</p>
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
@@ -321,7 +384,7 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
                 Preview
               </button>
             </div>
-            <div id="document-stats" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-steel">
+            <div id="document-stats" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-steel">
               <span>{wordCount.toLocaleString()} words</span>
               <span>{lineCount.toLocaleString()} lines</span>
               <span>{characterCount.toLocaleString()} chars</span>
@@ -330,18 +393,18 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
         </div>
       </header>
 
-      <div className="mx-auto grid min-h-0 w-full max-w-[112rem] flex-1 gap-3 overflow-hidden p-3 sm:p-4 md:grid-cols-[minmax(19rem,0.92fr)_1px_minmax(0,1.08fr)] md:p-5 lg:p-6">
+      <div className="mx-auto grid min-h-0 w-full max-w-[120rem] flex-1 overflow-hidden border-t-0 border-black/[0.08] bg-white sm:m-5 sm:flex-none sm:h-[calc(100svh-7.75rem)] sm:rounded-2xl sm:border md:grid-cols-[minmax(19rem,0.88fr)_1px_minmax(0,1.12fr)] lg:m-7 lg:h-[calc(100svh-9rem)]">
         <section
           id="editor-panel"
           aria-labelledby="editor-heading"
-          className={`workspace-panel min-h-0 min-w-0 flex-col overflow-hidden rounded-xl md:flex ${
+          className={`workspace-panel min-h-0 min-w-0 flex-col overflow-hidden md:flex ${
             activePanel === "editor" ? "flex" : "hidden"
           }`}
         >
-          <div className="flex items-center justify-between gap-3 border-b border-hairline-soft px-4 py-3.5 sm:px-5">
+          <div className="flex items-center justify-between gap-3 border-b border-black/[0.07] px-5 py-3.5 sm:px-6">
             <div className="flex items-center gap-2">
-              <span className="flex size-5 items-center justify-center rounded-md bg-surface-soft text-steel">#</span>
-              <h2 id="editor-heading" className="text-[11px] font-semibold uppercase tracking-[0.13em] text-steel">Write</h2>
+              <span className="font-mono text-xs text-[#86868b]">#</span>
+              <h2 id="editor-heading" className="text-xs font-medium text-[#6e6e73]">Write</h2>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="sr-only" aria-live="polite">
@@ -371,7 +434,7 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
           </div>
           <textarea
             id="markdown-input"
-            className="editor-canvas internal-scroll min-h-0 flex-1 resize-none bg-transparent px-4 py-5 font-mono text-[13px] leading-7 text-charcoal outline-none placeholder:text-muted sm:px-5 sm:py-6"
+            className="editor-canvas internal-scroll min-h-0 flex-1 resize-none bg-transparent px-5 py-5 font-mono text-[12px] leading-6 text-charcoal outline-none placeholder:text-muted sm:px-6 sm:py-6"
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
             placeholder="Start typing markdown..."
@@ -386,19 +449,19 @@ This demonstrates how the rich text engine handles **bold text**, *italic text*,
         <section
           id="preview-panel"
           aria-labelledby="preview-heading"
-          className={`workspace-panel min-h-0 min-w-0 flex-col overflow-hidden rounded-xl md:flex ${
+          className={`workspace-panel min-h-0 min-w-0 flex-col overflow-hidden md:flex ${
             activePanel === "preview" ? "flex" : "hidden"
           }`}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline-soft bg-white/90 px-4 py-3.5 backdrop-blur-xl sm:px-5">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/[0.07] bg-white/90 px-5 py-3.5 backdrop-blur-xl sm:px-6">
             <div className="flex items-center gap-2">
-              <Eye size={15} className="text-steel" aria-hidden="true" />
-              <h2 id="preview-heading" className="text-[11px] font-semibold uppercase tracking-[0.13em] text-steel">Preview</h2>
+              <Eye size={14} className="text-steel" aria-hidden="true" />
+              <h2 id="preview-heading" className="text-xs font-medium text-[#6e6e73]">Preview</h2>
             </div>
-            <span className="hidden text-[11px] font-medium text-steel sm:block">Live rendering</span>
+            <span className="hidden text-[11px] text-steel sm:block">Live rendering</span>
           </div>
-          <div className="internal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
-            <div className="mx-auto min-w-0 max-w-[44rem]">
+          <div className="internal-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-7 sm:px-9 sm:py-9 lg:px-14">
+            <div className="mx-auto min-w-0 max-w-[42rem]">
               {isEmpty ? (
                 <div
                   className="flex min-h-[20rem] items-center justify-center rounded-xl border border-dashed border-hairline bg-surface/50 px-6 py-10 text-center"

@@ -10,6 +10,7 @@ import remarkMath from "remark-math";
 
 import RichChart from "./RichChart";
 import RichCodeBlock from "./RichCodeBlock";
+import RichStructuredBlock from "./RichStructuredBlock";
 
 const RichMermaid = dynamic(() => import("./RichMermaid"), { ssr: false });
 
@@ -215,6 +216,10 @@ export default function RichMarkdown({
 
             if (language === "chart") {
               return <RichChart configStr={code} />;
+            }
+
+            if (["callout", "metrics", "timeline", "steps", "comparison", "accordion"].includes(language || "")) {
+              return <RichStructuredBlock type={language as "callout" | "metrics" | "timeline" | "steps" | "comparison" | "accordion"} configStr={code} />;
             }
 
             if (language) {
