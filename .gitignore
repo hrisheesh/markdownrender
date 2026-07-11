@@ -27,6 +27,7 @@
 .DS_Store
 *.pem
 plan.md
+MakingLLMReady.md
 
 # debug
 npm-debug.log*
