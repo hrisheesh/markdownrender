@@ -100,3 +100,7 @@ export const DEFAULT_MARKDOWN_FLOW_RENDER_POLICY: Readonly<Required<MarkdownFlow
   maxChartDataPoints: 250,
   allowExternalUrls: false,
 };
+
+export function isMarkdownFlowBlockType(value: string): value is MarkdownFlowBlockType {
+  return (MARKDOWN_FLOW_LLM_BLOCK_TYPES as readonly string[]).includes(value);
+}

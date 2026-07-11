@@ -7,6 +7,9 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
+import { DEFAULT_MARKDOWN_FLOW_RENDER_POLICY, isMarkdownFlowBlockType, type MarkdownFlowRenderPolicy } from "../../ai/protocol";
+import { validateMarkdownFlowBlock } from "../../ai/validation";
+import RichBlockValidationError from "./RichBlockValidationError";
 import RichChart from "./RichChart";
 import RichCodeBlock from "./RichCodeBlock";
 import RichMediaBlock from "./RichMediaBlock";
@@ -124,6 +127,8 @@ export interface RichMarkdownProps {
   citations?: Citation[];
   /** Explicit renderers for fenced block languages. These receive text-only code after Markdown sanitization. */
   blockRenderers?: RichBlockRenderers;
+  /** Enables strict validation and host-controlled limits for Markdown Flow's built-in AI blocks. */
+  renderPolicy?: MarkdownFlowRenderPolicy;
   /** Overrides for standard Markdown HTML elements. Source Markdown remains sanitized before these render. */
   components?: Components;
 }
@@ -142,7 +147,11 @@ export type RichBlockRenderers = Readonly<Record<string, RichBlockRenderer | und
  * Renders safe Markdown plus Markdown Flow's chart, media, and structured blocks.
  * Import `markdown-flow/styles.css` once in the consuming application.
  */
-export default function RichMarkdown({ content, citations, blockRenderers, components }: RichMarkdownProps) {
+export default function RichMarkdown({ content, citations, blockRenderers, renderPolicy, components }: RichMarkdownProps) {
+  const containsTooManyAiBlocks = renderPolicy
+    && (content.match(/^```(?:callout|metrics|timeline|steps|comparison|accordion|tabs|cards|filetree|progress|checklist|status|quote|chart|mermaid|embed|image|map)\s*$/gm)?.length ?? 0)
+      > (renderPolicy.maxBlocks ?? DEFAULT_MARKDOWN_FLOW_RENDER_POLICY.maxBlocks);
+
   return (
     <div className="markdown-render chat-markdown min-w-0 text-[15px] font-normal leading-7 text-charcoal sm:text-[16px] sm:leading-8">
       <ReactMarkdown
@@ -231,6 +240,12 @@ export default function RichMarkdown({ content, citations, blockRenderers, compo
           code: ({ children, className }) => {
             const language = /language-([\w-]+)/.exec(className || "")?.[1];
             const code = String(children).replace(/\n$/, "");
+
+            if (language && renderPolicy && isMarkdownFlowBlockType(language)) {
+              if (containsTooManyAiBlocks) return <RichBlockValidationError reason="This response exceeds the configured number of AI blocks." />;
+              const validation = validateMarkdownFlowBlock(language, code, renderPolicy);
+              if (!validation.valid) return <RichBlockValidationError reason={validation.reason} />;
+            }
 
             const blockRenderer = language ? blockRenderers?.[language] : undefined;
             if (blockRenderer && language) {

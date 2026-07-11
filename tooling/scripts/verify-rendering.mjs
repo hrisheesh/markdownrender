@@ -7,6 +7,7 @@ import React from "react";
 const require = createRequire(import.meta.url);
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const { RichMarkdown } = require(root);
+const { validateMarkdownFlowBlock } = require(root);
 const { RichMarkdownCore } = require(`${root}/dist/core.js`);
 const { StaticMarkdown } = require(`${root}/dist/server.js`);
 
@@ -38,6 +39,26 @@ const staticMarkup = render(StaticMarkdown, {
 assert.match(staticMarkup, /Server document/);
 assert.match(staticMarkup, /type: &#x27;line&#x27;/);
 assert.doesNotMatch(staticMarkup, /recharts|svg/i);
+
+assert.deepEqual(
+  validateMarkdownFlowBlock("chart", '{"type":"line","data":[{"name":"Jan","value":12}],"keys":["value"]}'),
+  { valid: true },
+);
+assert.match(
+  validateMarkdownFlowBlock("chart", "{ type: 'line' }", { allowedBlocks: ["chart"] }).reason,
+  /valid JSON/,
+);
+assert.match(
+  validateMarkdownFlowBlock("embed", '{"url":"https://example.com"}').reason,
+  /disabled/,
+);
+
+const strictPolicyMarkup = render(RichMarkdown, {
+  content: "```chart\n{ type: 'line' }\n```\n\n```callout\n{\"title\":\"Safe\",\"body\":\"Validated output.\"}\n```",
+  renderPolicy: { allowedBlocks: ["chart", "callout"] },
+});
+assert.match(strictPolicyMarkup, /could not be rendered safely/);
+assert.match(strictPolicyMarkup, /Validated output/);
 
 const a11yMarkup = render(RichMarkdown, {
   content: "```accordion\n{ title: 'Questions', items: [{ title: 'Is it accessible?', content: 'Yes.', open: true }] }\n```\n\n```progress\n{ items: [{ title: 'Release', value: 75, total: 100 }] }\n```",
