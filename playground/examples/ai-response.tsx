@@ -1,7 +1,6 @@
 "use client";
 
 import { AIResponse, useAIResponse } from "markdown-flow/ai";
-import "markdown-flow/styles.css";
 
 const sources = [{
   id: "release-notes",

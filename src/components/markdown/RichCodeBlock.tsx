@@ -4,10 +4,12 @@ import React, { useState } from "react";
 import { Check, Copy, WrapText } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useMarkdownFlowClass } from "./presentation";
 
 export default function RichCodeBlock({ language, code }: { language: string; code: string }) {
   const [copied, setCopied] = useState(false);
   const [wrapLines, setWrapLines] = useState(false);
+  const className = useMarkdownFlowClass("code", "mf-block", "mf-code", "rich-block-frame");
 
   async function handleCopy() {
     try {
@@ -20,21 +22,20 @@ export default function RichCodeBlock({ language, code }: { language: string; co
   }
 
   return (
-    <section className="rich-block-frame my-8 w-full min-w-0 max-w-full overflow-hidden bg-[#f8f8fa] text-[#1d1d1f]">
-      <header className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-black/[0.06] bg-white/75 px-3 py-2.5 backdrop-blur-sm sm:px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="size-1.5 shrink-0 rounded-full bg-brand-blue shadow-[0_0_0_3px_rgba(79,99,217,0.08)]" aria-hidden="true" />
-          <span className="truncate font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#73777d]">
+    <section className={className}>
+      <header className="mf-code-header">
+        <div className="mf-code-language">
+          <span className="mf-code-indicator" aria-hidden="true" />
+          <span>
             {language || "text"}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="mf-code-controls">
           <button
             type="button"
             onClick={() => setWrapLines((value) => !value)}
-            className={`rich-block-control size-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/55 ${
-              wrapLines ? "bg-brand-blue/[0.09] text-brand-blue" : ""
-            }`}
+            className="mf-control rich-block-control"
+            data-mf-active={wrapLines || undefined}
             aria-label={wrapLines ? "Disable line wrapping" : "Wrap long lines"}
             title={wrapLines ? "Disable line wrapping" : "Wrap long lines"}
           >
@@ -43,33 +44,26 @@ export default function RichCodeBlock({ language, code }: { language: string; co
           <button
             type="button"
             onClick={handleCopy}
-            className="rich-block-control gap-1.5 px-2.5 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/55"
+            className="mf-control rich-block-control"
             aria-label={copied ? "Code copied" : "Copy code"}
           >
-            {copied ? <Check size={14} className="text-[#34c759]" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+            {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
             <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
           </button>
         </div>
       </header>
-      <div className="internal-scroll max-h-[56svh] w-full min-w-0 max-w-full overflow-auto sm:max-h-[34rem]">
+      <div className="internal-scroll mf-code-scroll">
         <SyntaxHighlighter
           language={language || "text"}
           style={oneLight}
-          customStyle={{
-            margin: 0,
-            padding: "1.125rem 1rem 1.25rem",
-            background: "#f8f8fa",
-            fontSize: "13px",
-            lineHeight: "1.75",
-            overflow: "visible",
-          }}
+          customStyle={{ margin: 0, background: "transparent", overflow: "visible" }}
           wrapLongLines={wrapLines}
           wrapLines={wrapLines}
           showLineNumbers
           lineNumberStyle={{
             minWidth: "2.25em",
             paddingRight: "1.5em",
-            color: "#aeaeb2",
+            color: "var(--mf-text-subtle)",
             textAlign: "right",
             userSelect: "none",
           }}

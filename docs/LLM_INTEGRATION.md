@@ -1,3 +1,3 @@
 # AI integration
 
-See the [Ultimate User Guide: Render AI and RAG answers](../README.md#render-ai-and-rag-answers), [backend-neutral prompts and CLI](../README.md#generate-backend-neutral-prompts-and-use-the-cli), and [security configuration](../README.md#security-configuration).
+Start with the [five-minute quick start](./QUICK_START.md). For intentional rich output, see the [compact prompt](../README.md#optional-rich-output-prompt), [backend recipes](./BACKENDS.md), and [strict security controls](./SECURITY.md).

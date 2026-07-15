@@ -4,6 +4,36 @@ All notable changes to Markdown Flow are documented here. Markdown Flow follows 
 
 For installation, usage, configuration, examples, migration guidance, and troubleshooting, see the [Ultimate User Guide](./README.md).
 
+## 0.2.6 — 2026-07-16
+
+### Native, adaptive, zero-config rendering
+
+- Made the two-import `AIResponse` setup the complete default experience: ordinary Markdown, rich blocks, math, Mermaid, citations, controlled-string streaming, flexible normalization, and safe automatic enhancement work without a CLI or render policy.
+- Added `native`, `polished`, and `unstyled` appearances; inherited, light, dark, and object-based themes; scoped `--mf-*` variables; and stable structural class hooks.
+- Added high-confidence enhancement for task lists, numeric and percentage tables, dated structures, and file-tree fences while preserving ordinary Markdown as the fallback.
+- Added integration health callbacks and development-only guidance when ordinary Markdown renders but no rich output is detected.
+
+### Host-safe package styling
+
+- Removed Tailwind directives, global theme declarations, generic variables, forced fonts, forced colors, descendant-wide `!important` rules, and unscoped selectors from distributed CSS.
+- Scoped every emitted selector to the Markdown Flow root, kept the response surface transparent and inherited by default, and added host-isolation fixtures for light, dark, custom-font, Tailwind, Material UI, shadcn, and CSS Modules consumers.
+- Consolidated package-owned prose, block, math, utility, motion, and responsive styles into compiled CSS that requires no consumer-side preprocessing.
+
+### Flexible output and simpler prompting
+
+- Expanded block-aware aliases, chart inference, confidence reporting, readable fallbacks, and compatibility/invalid/unsafe classifications while preserving strict validation and security boundaries.
+- Added a compact prompt constant, task-specific compact or full instructions, static prompt assets, and a universal setup helper. The CLI remains available for optional customization and verification.
+- Rebuilt onboarding around a five-minute Quick Start with complete backend, styling, troubleshooting, streaming, citations, and advanced-security recipes.
+
+### Release quality
+
+- Added regression coverage for presentation APIs, zero-contract enhancement, diagnostics, normalization, prompt generation, CSS isolation, package styling, and CLI behavior.
+- Published prompt assets as package exports and added CSS isolation to the standard release validation surface.
+- Fixed unconfigured `AIResponse` responses with more than 32 rich fences being incorrectly rejected; an explicit `maxBlocks` policy is now the only block-count limit.
+- Made Mermaid theme values safe for Mermaid’s parser and contained diagram initialization failures to the affected diagram instead of allowing them to interrupt the answer.
+- Corrected App Router onboarding: import `markdown-flow/styles.css` once from the root layout, replace the live raw-answer branch with `AIResponse`, pass trusted `sources` for inline citations, and clear `.next` only when a dependency replacement leaves a stale React Client Manifest.
+- Added interactive long-response, streaming, flexible-output, citation, fallback, and all-component scenarios to the playground for pre-release visual validation.
+
 ## 0.2.5 — 2026-07-15
 
 ### Flexible AI output

@@ -16,6 +16,13 @@ import type { MarkdownFlowCitation, MarkdownFlowDataset, MarkdownFlowResponse, M
 import { emitMarkdownFlowTelemetry, type MarkdownFlowTelemetry } from "./telemetry";
 import { AIResponseInspector, type AIResponseInspectorEvent } from "./AIResponseInspector";
 import type { MarkdownFlowNormalizationMode } from "./model";
+import { MarkdownFlowPresentationRoot, joinClassNames } from "../components/markdown/presentation";
+import {
+  createMarkdownFlowDiagnosticsReport,
+  getMarkdownFlowNoBlocksDiagnostic,
+  type MarkdownFlowDiagnosticsReport,
+} from "./diagnostics";
+import { enhanceMarkdownFlowContent } from "./enhancement";
 
 export interface UseMarkdownFlowStreamOptions {
   citations?: readonly MarkdownFlowCitation[];
@@ -251,6 +258,8 @@ export interface StreamingRichMarkdownProps extends Omit<RichMarkdownProps, "con
   scrollContainerRef?: React.RefObject<HTMLElement | null>;
   /** Shows local parser state in development; stripped from production output. */
   debug?: boolean;
+  /** Receives privacy-safe integration health counters after render input changes. */
+  onDiagnostics?: (report: MarkdownFlowDiagnosticsReport) => void;
 }
 
 function shallowEqualProps(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
@@ -270,8 +279,8 @@ const RenderSegment = React.memo(function RenderSegment({
   if (segment.type === "pending") {
     const stopped = status !== "streaming";
     return (
-      <div role={stopped ? "status" : "progressbar"} aria-label={stopped ? "Incomplete AI block" : "Rendering AI block"} className="rich-block-state rich-stream-pending">
-        <div className="rich-stream-row">
+      <div role={stopped ? "status" : "progressbar"} aria-label={stopped ? "Incomplete AI block" : "Rendering AI block"} className="mf-block mf-stream-pending rich-block-state rich-stream-pending">
+        <div className="mf-stream-row rich-stream-row">
           <span className={`rich-stream-icon ${stopped ? "rich-stream-icon-warning" : ""}`} aria-hidden="true">
             {stopped ? "!" : <span className="rich-stream-pulse" />}
           </span>
@@ -301,6 +310,12 @@ export function StreamingRichMarkdown({
   scrollBehavior = "none",
   scrollContainerRef,
   debug = false,
+  onDiagnostics,
+  appearance,
+  theme,
+  className,
+  classes,
+  style,
   ...markdownProps
 }: StreamingRichMarkdownProps) {
   const activeStream = React.useMemo(() => {
@@ -310,6 +325,23 @@ export function StreamingRichMarkdown({
     return makeSnapshot(parser, status, citations ?? [], [], error);
   }, [citations, content, error, status, stream]);
   const segments = activeStream.segments;
+  const diagnosticContent = React.useMemo(
+    () => enhanceMarkdownFlowContent(activeStream.content, markdownProps.enhance ?? "safe").content,
+    [activeStream.content, markdownProps.enhance],
+  );
+  const integrationDiagnostics = React.useMemo(
+    () => createMarkdownFlowDiagnosticsReport(diagnosticContent, {
+      sources: activeStream.citations,
+      normalization: markdownProps.validationMode,
+    }),
+    [activeStream.citations, diagnosticContent, markdownProps.validationMode],
+  );
+  const noBlocksDiagnostic = React.useMemo(
+    () => getMarkdownFlowNoBlocksDiagnostic(diagnosticContent, {
+      enabled: debug && process.env.NODE_ENV !== "production",
+    }),
+    [debug, diagnosticContent],
+  );
   const [debugEvents, setDebugEvents] = React.useState<readonly AIResponseInspectorEvent[]>([]);
   const activeTelemetry = React.useMemo<MarkdownFlowTelemetry | undefined>(() => {
     if (!debug || process.env.NODE_ENV === "production") return telemetry;
@@ -327,6 +359,10 @@ export function StreamingRichMarkdown({
   }, [activeStream.status, activeTelemetry, segments.length]);
 
   React.useEffect(() => {
+    onDiagnostics?.(integrationDiagnostics);
+  }, [integrationDiagnostics, onDiagnostics]);
+
+  React.useEffect(() => {
     const container = scrollContainerRef?.current;
     if (!container || scrollBehavior === "none") return;
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 64;
@@ -334,9 +370,17 @@ export function StreamingRichMarkdown({
   }, [scrollBehavior, scrollContainerRef, segments]);
 
   return (
-    <div className="markdown-render min-w-0" aria-live="polite" aria-busy={activeStream.status === "streaming"}>
+    <MarkdownFlowPresentationRoot
+      appearance={appearance}
+      theme={theme}
+      className={joinClassNames(classes?.stream, className)}
+      classes={classes}
+      style={style}
+      aria-live="polite"
+      aria-busy={activeStream.status === "streaming"}
+    >
       {activeStream.status === "streaming" && (
-        <div role="status" aria-label="Generating response" className="rich-stream-generating">
+        <div role="status" aria-label="Generating response" className="mf-stream-generating rich-stream-generating">
           <span className="rich-stream-dots" aria-hidden="true">
             <span className="rich-stream-dot" />
             <span className="rich-stream-dot" />
@@ -346,8 +390,14 @@ export function StreamingRichMarkdown({
         </div>
       )}
       {segments.map((segment) => <RenderSegment key={segment.id} segment={segment} markdownProps={{ ...markdownProps, citations: activeStream.citations, telemetry: activeTelemetry }} status={activeStream.status} />)}
-      {activeStream.error && <div role="alert" className="rich-block-state rich-stream-error">{activeStream.error}</div>}
+      {activeStream.error && <div role="alert" className="mf-block mf-stream-error rich-block-state rich-stream-error">{activeStream.error}</div>}
+      {noBlocksDiagnostic && (
+        <aside className="mf-block mf-diagnostic" role="status">
+          <strong>{noBlocksDiagnostic.title}</strong>
+          <span>{noBlocksDiagnostic.message}</span>
+        </aside>
+      )}
       {debug && <AIResponseInspector snapshot={activeStream} events={debugEvents} />}
-    </div>
+    </MarkdownFlowPresentationRoot>
   );
 }

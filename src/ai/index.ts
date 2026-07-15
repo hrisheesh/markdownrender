@@ -2,6 +2,14 @@ export { StreamingRichMarkdown, useMarkdownFlowStream } from "./StreamingRichMar
 export type { MarkdownFlowStreamController, StreamingRichMarkdownProps, UseMarkdownFlowStreamOptions } from "./StreamingRichMarkdown";
 export { AIResponse, useAIResponse } from "./AIResponse";
 export type { AIResponseComponent, AIResponseComponents, AIResponseProps, UseAIResponseOptions } from "./AIResponse";
+export type {
+  MarkdownFlowAppearance,
+  MarkdownFlowClasses,
+  MarkdownFlowClassSlot,
+  MarkdownFlowTheme,
+  MarkdownFlowThemeName,
+  MarkdownFlowThemeVariables,
+} from "../components/markdown/presentation";
 export { AI_RESPONSE_PRESET_POLICIES, AI_RESPONSE_PRESETS, getAIResponsePresetPolicy } from "./presets";
 export type { AIResponsePreset } from "./presets";
 export {
@@ -79,11 +87,26 @@ export { normalizeMarkdownFlowBlock, validateMarkdownFlowBlock } from "./validat
 export type { MarkdownFlowNormalizedBlock, MarkdownFlowBlockValidationResult } from "./validation";
 export { emitMarkdownFlowTelemetry } from "./telemetry";
 export type { MarkdownFlowTelemetry, MarkdownFlowTelemetryContext, MarkdownFlowTelemetryEvent } from "./telemetry";
+export { applyMarkdownFlowEnhancements, enhanceMarkdownFlowContent } from "./enhancement";
+export type {
+  MarkdownFlowEnhancement,
+  MarkdownFlowEnhancementMode,
+  MarkdownFlowEnhancementOptions,
+  MarkdownFlowEnhancementResult,
+} from "./enhancement";
+export { createMarkdownFlowDiagnosticsReport, getMarkdownFlowNoBlocksDiagnostic } from "./diagnostics";
+export type {
+  MarkdownFlowDiagnosticsOptions,
+  MarkdownFlowDiagnosticsReport,
+  MarkdownFlowNoBlocksDiagnostic,
+} from "./diagnostics";
 export {
   createMarkdownFlowInstructions,
   createMarkdownFlow,
   createMarkdownFlowResponseTool,
+  MARKDOWN_FLOW_COMPACT_PROMPT,
   MARKDOWN_FLOW_CITATION_FORMAT,
+  MARKDOWN_FLOW_THEME_VARIABLES,
   markdownFlowResponseSchema,
   markdownFlowResponseTool,
   normalizeAnthropicStream,
@@ -102,6 +125,8 @@ export type {
   MarkdownFlowConfiguration,
   MarkdownFlowInstructionsOptions,
   MarkdownFlowJsonSchema,
+  MarkdownFlowInstructionDetail,
+  MarkdownFlowThemeVariable,
   MarkdownFlowToolDefinition,
   MarkdownFlowValidationMode,
 } from "./integration";

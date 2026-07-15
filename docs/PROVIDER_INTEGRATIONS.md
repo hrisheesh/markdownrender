@@ -1,3 +1,3 @@
 # Provider integrations
 
-See the [Ultimate User Guide: provider and framework examples](../README.md#provider-and-framework-examples) for provider-neutral, OpenAI, Anthropic, Vercel AI SDK, SSE, and Next.js integration.
+See the [backend recipes](./BACKENDS.md) for provider-neutral Node, Next.js, Python, FastAPI, .NET, Java, Go, RAG, and strict integrations. Existing OpenAI, Anthropic, Vercel AI SDK, and SSE adapters remain advanced optional APIs.

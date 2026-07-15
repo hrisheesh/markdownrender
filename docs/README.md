@@ -1,12 +1,15 @@
-# Documentation index
+# Documentation
 
-The complete, maintained package documentation is the [Markdown Flow Ultimate User Guide](../README.md). It covers installation, React rendering, AI/RAG, prompts and CLI, streaming, citations, policies, blocks, diagnostics, security, examples, migration, and troubleshooting.
+Start with the [five-minute quick start](./QUICK_START.md). It ends after installation, one stylesheet import, and one component.
 
-Topic links are retained for existing bookmarks:
+| Goal | Guide |
+| --- | --- |
+| Understand the package and optional rich-output prompt | [Main guide](../README.md) |
+| Integrate in five minutes | [Quick start](./QUICK_START.md) |
+| Copy a Node, Next.js, Python, FastAPI, .NET, Java, or Go recipe | [Backend recipes](./BACKENDS.md) |
+| Match an existing design system | [Styling and themes](./STYLING.md) |
+| Diagnose rendering, streaming, citations, or CSS | [Troubleshooting](./TROUBLESHOOTING.md) |
+| Configure strict policies, datasets, or artifacts | [Security and strict mode](./SECURITY.md) |
+| Review version history | [Changelog](../CHANGELOG.md) |
 
-- [AI integration](../README.md#render-ai-and-rag-answers)
-- [Streaming](../README.md#stream-responses)
-- [RAG, citations, datasets, and artifacts](../README.md#citations-datasets-and-trusted-artifacts)
-- [Policies and blocks](../README.md#presets-policies-and-normalization)
-- [Provider and framework examples](../README.md#provider-and-framework-examples)
-- [Release notes](../CHANGELOG.md)
+Older topic URLs remain in this directory as redirects for existing bookmarks.

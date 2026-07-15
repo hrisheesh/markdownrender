@@ -5,6 +5,7 @@ import React from "react";
 import type { MarkdownFlowArtifactFallbackProps, MarkdownFlowValidatedArtifact } from "../../ai/artifacts";
 import type { MarkdownFlowResolverResult } from "../../ai/data";
 import { emitMarkdownFlowTelemetry, type MarkdownFlowTelemetry } from "../../ai/telemetry";
+import { useMarkdownFlowClass } from "./presentation";
 
 export interface MarkdownFlowArtifactStateProps {
   state: MarkdownFlowArtifactFallbackProps["state"];
@@ -14,6 +15,7 @@ export interface MarkdownFlowArtifactStateProps {
 
 /** Accessible default UI for loading and failure states in custom artifacts. */
 export function MarkdownFlowArtifactState({ state, message, onRetry }: MarkdownFlowArtifactStateProps) {
+  const className = useMarkdownFlowClass("artifact", "mf-block", "mf-artifact", "mf-artifact-state", "rich-block-state");
   const text = message ?? ({
     loading: "Loading approved data…",
     unavailable: "Approved data is unavailable.",
@@ -22,9 +24,9 @@ export function MarkdownFlowArtifactState({ state, message, onRetry }: MarkdownF
     invalid: "This artifact could not be rendered safely.",
   }[state]);
   return (
-    <div role={state === "error" || state === "invalid" ? "alert" : "status"} aria-live="polite" className="rich-block-state my-6 px-4 py-4 text-sm sm:px-5">
-      <p className="leading-6">{text}</p>
-      {onRetry && (state === "unavailable" || state === "error") && <button type="button" onClick={onRetry} className="rich-block-control mt-3 border border-hairline bg-white px-3 text-xs font-semibold text-ink shadow-sm">Retry</button>}
+    <div role={state === "error" || state === "invalid" ? "alert" : "status"} aria-live="polite" className={className} data-mf-state={state}>
+      <p className="mf-block-copy">{text}</p>
+      {onRetry && (state === "unavailable" || state === "error") && <button type="button" onClick={onRetry} className="mf-control rich-block-control">Retry</button>}
     </div>
   );
 }
@@ -56,8 +58,9 @@ function ResolvedArtifactRenderer({ artifact, telemetry }: { artifact: MarkdownF
 }
 
 export default function RichArtifactBlock({ artifact, telemetry }: { artifact: MarkdownFlowValidatedArtifact; telemetry?: MarkdownFlowTelemetry }) {
-  if (!artifact.definition.resolver) {
-    return <>{artifact.definition.render({ name: artifact.definition.name, version: artifact.definition.version, input: artifact.input, value: artifact.input })}</>;
-  }
-  return <ResolvedArtifactRenderer key={`${artifact.definition.name}\u0000${artifact.definition.version}`} artifact={artifact} telemetry={telemetry} />;
+  const className = useMarkdownFlowClass("artifact", "mf-block", "mf-artifact");
+  const content = !artifact.definition.resolver
+    ? artifact.definition.render({ name: artifact.definition.name, version: artifact.definition.version, input: artifact.input, value: artifact.input })
+    : <ResolvedArtifactRenderer key={`${artifact.definition.name}\u0000${artifact.definition.version}`} artifact={artifact} telemetry={telemetry} />;
+  return <div className={className}>{content}</div>;
 }

@@ -21,6 +21,13 @@ export interface MarkdownFlowInstructionsOptions {
   protocol?: MarkdownFlowProtocol;
   /** Uses the corresponding built-in policy unless `allowedBlocks` is supplied. */
   preset?: AIResponsePreset;
+  /** Rich blocks relevant to this task. Unlike `allowedBlocks`, this does not restrict rendering. */
+  blocks?: readonly MarkdownFlowBlockType[];
+  /** Compact is intended for normal requests; full includes validator-aligned examples. */
+  detail?: MarkdownFlowInstructionDetail;
+  /** Strict prompting is opt-in. `normalize` accepts common model formatting. */
+  mode?: MarkdownFlowValidationMode;
+  /** Compatibility option. Prefer `blocks` for generation-only guidance. */
   allowedBlocks?: readonly MarkdownFlowBlockType[];
   availableDatasets?: readonly (string | MarkdownFlowDatasetInstruction)[];
   /** Trusted source metadata used to generate citation guidance. */
@@ -32,20 +39,63 @@ export interface MarkdownFlowInstructionsOptions {
 }
 
 export type MarkdownFlowValidationMode = "normalize" | "strict";
+export type MarkdownFlowInstructionDetail = "compact" | "full";
 
 export interface CreateMarkdownFlowOptions extends Omit<MarkdownFlowInstructionsOptions, "strict"> {
   validationMode?: MarkdownFlowValidationMode;
 }
 
 export interface MarkdownFlowConfiguration {
+  /** Recommended, token-efficient model instruction. */
+  compactPrompt: string;
+  /** Complete validator-aligned contract for advanced or strict workflows. */
+  fullPrompt: string;
+  /** Compatibility alias for the prompt selected by `detail` (compact by default). */
   instructions: string;
   policy: MarkdownFlowRenderPolicy;
   blockTypes: readonly MarkdownFlowBlockType[];
   citationFormat: "[cite:source-id]";
   version: MarkdownFlowProtocol;
+  /** Stable CSS variables available to theme-aware integrations. */
+  themeVariables: Readonly<Record<MarkdownFlowThemeVariable, string>>;
 }
 
 export const MARKDOWN_FLOW_CITATION_FORMAT = "[cite:source-id]" as const;
+
+export const MARKDOWN_FLOW_THEME_VARIABLES = Object.freeze({
+  "--mf-accent": "currentColor",
+  "--mf-accent-strong": "currentColor",
+  "--mf-block-gap": "1.5rem",
+  "--mf-border": "color-mix(in srgb, currentColor 13%, transparent)",
+  "--mf-border-strong": "color-mix(in srgb, currentColor 20%, transparent)",
+  "--mf-danger": "#c62828",
+  "--mf-font": "inherit",
+  "--mf-font-mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  "--mf-on-accent": "Canvas",
+  "--mf-radius": "10px",
+  "--mf-radius-lg": "14px",
+  "--mf-radius-md": "10px",
+  "--mf-radius-sm": "6px",
+  "--mf-section-gap": "2rem",
+  "--mf-success": "#16803c",
+  "--mf-surface": "transparent",
+  "--mf-surface-raised": "color-mix(in srgb, currentColor 6%, transparent)",
+  "--mf-surface-subtle": "color-mix(in srgb, currentColor 4%, transparent)",
+  "--mf-text": "currentColor",
+  "--mf-text-muted": "color-mix(in srgb, currentColor 62%, transparent)",
+  "--mf-text-subtle": "color-mix(in srgb, currentColor 46%, transparent)",
+  "--mf-warning": "#b35c00",
+});
+
+export type MarkdownFlowThemeVariable = keyof typeof MARKDOWN_FLOW_THEME_VARIABLES;
+
+const COMPACT_BLOCK_NAMES = MARKDOWN_FLOW_LLM_BLOCK_TYPES.join(", ");
+
+/**
+ * Small, provider-neutral guidance for richer output. Ordinary Markdown works
+ * without this prompt; add it only when intentional rich blocks are useful.
+ */
+export const MARKDOWN_FLOW_COMPACT_PROMPT = `Markdown Flow ${MARKDOWN_FLOW_PROTOCOL}: Write ordinary Markdown by default. Rich blocks are optional; use only when they make the answer clearer. Available blocks: ${COMPACT_BLOCK_NAMES}. Start a block with a fenced block name, put its JSON object on the next line, then close the fence. Mermaid blocks contain Mermaid source instead of JSON. Use meaningful, non-empty data; if unsure, use Markdown. Never emit HTML, CSS, JavaScript, JSX, actions, or invented data. Cite only supplied source IDs with [cite:source-id].`;
 
 export interface MarkdownFlowToolDefinition {
   name: "markdown_flow_response";
@@ -86,6 +136,32 @@ function formatDataset(dataset: string | MarkdownFlowDatasetInstruction): string
   return typeof dataset === "string" ? dataset : dataset.description ? `${dataset.id} (${dataset.description})` : dataset.id;
 }
 
+function uniqueBlocks(blocks: readonly MarkdownFlowBlockType[]): readonly MarkdownFlowBlockType[] {
+  return [...new Set(blocks)];
+}
+
+function instructionBlocks(options: MarkdownFlowInstructionsOptions): readonly MarkdownFlowBlockType[] {
+  return uniqueBlocks(options.blocks ?? options.allowedBlocks ?? MARKDOWN_FLOW_LLM_BLOCK_TYPES);
+}
+
+function compactInstructions(
+  protocol: MarkdownFlowProtocol,
+  blocks: readonly MarkdownFlowBlockType[],
+  strict: boolean,
+): string {
+  const names = blocks.join(", ") || "none";
+  return [
+    `Markdown Flow ${protocol}: Write ordinary Markdown by default. Rich blocks are optional; use only when they make the answer clearer.`,
+    `Available blocks: ${names}.`,
+    "Start a block with a fenced block name, put its JSON object on the next line, then close the fence. Mermaid blocks contain Mermaid source instead of JSON.",
+    strict
+      ? "Use exact strict JSON with double-quoted keys and strings; no comments or trailing commas."
+      : "Common JSON-style model output is accepted, but keep the structure simple.",
+    "Use meaningful, non-empty data; if unsure, use Markdown. Never emit HTML, CSS, JavaScript, JSX, actions, or invented data.",
+    `Cite only supplied source IDs with ${MARKDOWN_FLOW_CITATION_FORMAT}.`,
+  ].join(" ");
+}
+
 /**
  * Produces a concise, versioned instruction block suitable for any LLM
  * provider. It deliberately describes presentation rules only; authorization,
@@ -93,8 +169,9 @@ function formatDataset(dataset: string | MarkdownFlowDatasetInstruction): string
  */
 export function createMarkdownFlowInstructions(options: MarkdownFlowInstructionsOptions = {}): string {
   const protocol = options.protocol ?? MARKDOWN_FLOW_PROTOCOL;
-  const allowedBlocks = options.allowedBlocks ?? (options.preset ? getAIResponsePresetPolicy(options.preset).allowedBlocks ?? [] : MARKDOWN_FLOW_LLM_BLOCK_TYPES);
-  const strictJson = options.strict ?? true;
+  const allowedBlocks = instructionBlocks(options);
+  const detail = options.detail ?? "compact";
+  const strictJson = options.mode === "strict" || options.strict === true;
   const datasets = options.availableDatasets?.map(formatDataset) ?? [];
   const sources = options.sources ?? options.citations ?? [];
   const citations = sources.map((source) => {
@@ -102,10 +179,10 @@ export function createMarkdownFlowInstructions(options: MarkdownFlowInstructions
     return normalized.title ? `${normalized.id} (${normalized.title})` : normalized.id;
   });
 
-  const lines = [
+  const lines = detail === "compact" ? [compactInstructions(protocol, allowedBlocks, strictJson)] : [
     `Markdown Flow contract: ${protocol}.`,
-    "Write the answer as normal Markdown. Use a fenced Markdown Flow block only when it makes the answer clearer.",
-    `Allowed block types: ${allowedBlocks.join(", ") || "none"}.`,
+    "Write the answer as ordinary Markdown. Use a fenced Markdown Flow block only when it makes the answer clearer.",
+    `Available block types: ${allowedBlocks.join(", ") || "none"}.`,
     strictJson
       ? "Each rich block must use strict JSON with double-quoted keys and strings; do not use JSON5, comments, trailing commas, HTML, CSS, JavaScript, React, or unapproved block types."
       : "Each rich block must contain a JSON object; do not emit HTML, CSS, JavaScript, React, or unapproved block types.",
@@ -114,7 +191,7 @@ export function createMarkdownFlowInstructions(options: MarkdownFlowInstructions
     `Never invent sources or data. Cite only supplied source IDs using the exact token ${MARKDOWN_FLOW_CITATION_FORMAT} in normal Markdown, and reference approved datasets instead of copying large datasets.`,
   ];
 
-  if (allowedBlocks.length) lines.push("Enabled block contracts:\n" + createMarkdownFlowBlockInstructions(allowedBlocks).join("\n"));
+  if (detail === "full" && allowedBlocks.length) lines.push("Enabled block contracts:\n" + createMarkdownFlowBlockInstructions(allowedBlocks).join("\n"));
 
   if (datasets.length) lines.push(`Approved dataset IDs: ${datasets.join(", ")}.`);
   if (citations.length) lines.push(`Available citations: ${citations.join(", ")}.`, createMarkdownFlowCitationGuidance(sources));
@@ -130,30 +207,39 @@ export function createMarkdownFlowInstructions(options: MarkdownFlowInstructions
 export function createMarkdownFlow(options: CreateMarkdownFlowOptions = {}): MarkdownFlowConfiguration {
   const preset = options.preset ?? "chat";
   const presetPolicy = getAIResponsePresetPolicy(preset);
-  const blockTypes = options.allowedBlocks ?? presetPolicy.allowedBlocks ?? MARKDOWN_FLOW_LLM_BLOCK_TYPES;
+  const blockTypes = instructionBlocks(options);
   const datasets = options.availableDatasets ?? [];
   const datasetIds = datasets.map((dataset) => typeof dataset === "string" ? dataset : dataset.id);
   const policy: MarkdownFlowRenderPolicy = {
     ...presetPolicy,
-    allowedBlocks: blockTypes,
+    ...(options.allowedBlocks ? { allowedBlocks: options.allowedBlocks } : {}),
     ...(datasets.length ? { allowedDatasetIds: datasetIds } : {}),
   };
   const sources = options.sources ?? options.citations;
-  const validationMode = options.validationMode ?? "normalize";
+  const validationMode = options.validationMode ?? options.mode ?? "normalize";
   const version = options.protocol ?? MARKDOWN_FLOW_PROTOCOL;
+  const shared = {
+    ...options,
+    protocol: version,
+    blocks: blockTypes,
+    sources,
+    mode: validationMode,
+  } as const;
+  const compactPrompt = createMarkdownFlowInstructions({ ...shared, detail: "compact" });
+  const fullPrompt = createMarkdownFlowInstructions({ ...shared, detail: "full", mode: "strict" });
+  const instructions = options.detail === "full" && validationMode !== "strict"
+    ? createMarkdownFlowInstructions({ ...shared, detail: "full" })
+    : options.detail === "full" ? fullPrompt : compactPrompt;
 
   return {
-    instructions: createMarkdownFlowInstructions({
-      ...options,
-      protocol: version,
-      allowedBlocks: blockTypes,
-      sources,
-      strict: validationMode === "strict",
-    }),
+    compactPrompt,
+    fullPrompt,
+    instructions,
     policy,
     blockTypes,
     citationFormat: MARKDOWN_FLOW_CITATION_FORMAT,
     version,
+    themeVariables: MARKDOWN_FLOW_THEME_VARIABLES,
   };
 }
 

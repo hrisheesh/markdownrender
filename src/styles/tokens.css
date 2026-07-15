@@ -1,0 +1,50 @@
+:where(.markdown-render, .mf-root) {
+  --mf-font: inherit;
+  --mf-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --mf-text: currentColor;
+  --mf-text-muted: color-mix(in srgb, currentColor 62%, transparent);
+  --mf-text-subtle: color-mix(in srgb, currentColor 46%, transparent);
+  --mf-accent: currentColor;
+  --mf-accent-strong: currentColor;
+  --mf-on-accent: Canvas;
+  --mf-success: #16803c;
+  --mf-warning: #b35c00;
+  --mf-danger: #c62828;
+  --mf-surface: transparent;
+  --mf-surface-subtle: color-mix(in srgb, currentColor 4%, transparent);
+  --mf-surface-raised: color-mix(in srgb, currentColor 6%, transparent);
+  --mf-border: color-mix(in srgb, currentColor 13%, transparent);
+  --mf-border-strong: color-mix(in srgb, currentColor 20%, transparent);
+  --mf-radius: 10px;
+  --mf-radius-sm: 6px;
+  --mf-radius-md: var(--mf-radius);
+  --mf-radius-lg: 14px;
+  --mf-block-gap: 1.5rem;
+  --mf-section-gap: 2rem;
+  --mf-density-gap: 0.75rem;
+  --mf-density-padding: 1.25rem;
+
+  min-width: 0;
+  max-width: 100%;
+  color: inherit;
+  color-scheme: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  overflow-wrap: anywhere;
+  background: transparent;
+}
+
+:where(.markdown-render, .mf-root)[data-mf-theme="light"] {
+  color-scheme: light;
+  --mf-on-accent: white;
+}
+
+:where(.markdown-render, .mf-root)[data-mf-theme="dark"] {
+  color-scheme: dark;
+  --mf-on-accent: #111;
+}
+
+:where(.markdown-render, .mf-root)::selection {
+  background: color-mix(in srgb, var(--mf-accent) 18%, transparent);
+}

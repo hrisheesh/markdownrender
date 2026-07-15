@@ -55,8 +55,8 @@ assert.match(coreMarkup, /Core document/);
 const wideTableMarkup = render(RichMarkdown, {
   content: "| Feature | Interactive charts | Reliable table fallback | Token overhead | Streaming friendly |\n| --- | --- | --- | --- | --- |\n| Long-form response | Works without breaking normal words into single characters | Preserves readable columns | Minimal | Yes |",
 });
-assert.match(wideTableMarkup, /min-w-full w-max/);
-assert.match(wideTableMarkup, /break-normal wrap-normal/);
+assert.match(wideTableMarkup, /class="internal-scroll mf-table-scroll"/);
+assert.match(wideTableMarkup, /class="mf-table"/);
 
 const duplicateComparisonMarkup = render(RichMarkdown, {
   content: "```comparison\n{\"columns\":[\"Interactive charts\",\"Interactive charts\"],\"rows\":[{\"label\":\"Reliable table fallback\",\"values\":[\"Included\",\"Included\"]},{\"label\":\"Reliable table fallback\",\"values\":[true,true]}]}\n```",
@@ -227,7 +227,7 @@ const instructions = createMarkdownFlowInstructions({
   availableDatasets: ["revenue-by-month"],
   citations: [{ id: "1", filename: "report.pdf" }],
 });
-assert.match(instructions, /Allowed block types: callout/);
+assert.match(instructions, /Available blocks: callout/);
 assert.match(instructions, /Approved dataset IDs: revenue-by-month/);
 assert.match(instructions, /\[cite:source-id\]/);
 assert.deepEqual(markdownFlowResponseSchema.required, ["protocol", "content"]);

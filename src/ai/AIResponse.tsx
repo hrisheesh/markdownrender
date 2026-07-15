@@ -71,6 +71,8 @@ export interface AIResponseProps extends Omit<StreamingRichMarkdownProps, "citat
   markdownComponents?: Components;
   /** Shows the local development inspector. It never renders in production. */
   debug?: boolean;
+  /** Concise alias for validationMode. Strict schema enforcement is opt-in. */
+  mode?: "normalize" | "flexible" | "strict";
 }
 
 const objectInputSchema: MarkdownFlowArtifactSchema<Record<string, unknown>> = {
@@ -82,7 +84,7 @@ const objectInputSchema: MarkdownFlowArtifactSchema<Record<string, unknown>> = {
 };
 
 function ComponentFallback({ reason }: MarkdownFlowArtifactFallbackProps) {
-  return <div role="status" className="my-4 rounded-lg border border-black/[0.08] bg-[#fbfbfd] px-4 py-3 text-sm text-[#6e6e73]">{reason}</div>;
+  return <div role="status" className="mf-block mf-artifact mf-fallback">{reason}</div>;
 }
 
 function componentDefinitions(components?: AIResponseComponents): MarkdownFlowArtifactDefinition[] {
@@ -150,8 +152,10 @@ export function AIResponse({
   components,
   artifactRegistry,
   markdownComponents,
+  mode,
   ...props
 }: AIResponseProps) {
+  const validationMode = mode === "flexible" ? "normalize" : mode ?? props.validationMode;
   const definitions = React.useMemo(() => componentDefinitions(components), [components]);
   const registry = React.useMemo(() => {
     if (!definitions.length) return artifactRegistry;
@@ -166,7 +170,7 @@ export function AIResponse({
     status: props.status,
     error: props.error,
     citations: displayCitations,
-    normalization: props.validationMode,
+    normalization: validationMode,
   });
   const activeStream = props.stream ?? (props.content === undefined ? undefined : controlledStream);
 
@@ -178,6 +182,7 @@ export function AIResponse({
       renderPolicy={activePolicy}
       artifactRegistry={registry}
       components={markdownComponents as RichMarkdownProps["components"]}
+      validationMode={validationMode}
     />
   );
 }

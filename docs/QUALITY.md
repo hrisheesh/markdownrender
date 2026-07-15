@@ -1,3 +1,3 @@
 # Quality and diagnostics
 
-See the [Ultimate User Guide: styling, diagnostics, and telemetry](../README.md#styling-diagnostics-and-telemetry), [security configuration](../README.md#security-configuration), and [troubleshooting](../README.md#troubleshooting).
+See [Styling and themes](./STYLING.md), [Troubleshooting](./TROUBLESHOOTING.md), and [Security and strict mode](./SECURITY.md).

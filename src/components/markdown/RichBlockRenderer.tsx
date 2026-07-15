@@ -23,7 +23,7 @@ const RichCodeBlock = React.lazy(() => import("./RichCodeBlock"));
 const RichMermaid = React.lazy(() => import("./RichMermaid"));
 
 function FeatureFallback({ label }: { label: string }) {
-  return <div role="status" aria-live="polite" className="rich-block-state my-6 flex items-center gap-3 px-4 py-3.5 text-sm"><span className="size-2 shrink-0 animate-pulse rounded-full bg-brand-blue" aria-hidden="true" />Loading {label}…</div>;
+  return <div role="status" aria-live="polite" className="mf-block mf-fallback mf-loading rich-block-state"><span className="mf-loading-indicator" aria-hidden="true" />Loading {label}…</div>;
 }
 
 function LazyFeature({ label, children }: { label: string; children: React.ReactNode }) {
@@ -58,6 +58,10 @@ function hasDatasetReference(code: string): boolean {
 
 /** Canonical dispatch pipeline for every rich fenced block. */
 export default function RichBlockRenderer({ language, code, blockRenderers, renderPolicy, artifactRegistry, datasetResolver, telemetry, validationMode, containsTooManyAiBlocks }: RichBlockRendererProps) {
+  const exactCustomRenderer = blockRenderers?.[language];
+  if (exactCustomRenderer && !isMarkdownFlowBlockType(language) && language !== "artifact") {
+    return exactCustomRenderer({ language, code });
+  }
   const normalization = { normalization: validationMode } as const;
   const normalizedBlock = normalizeMarkdownFlowBlock(language, code, normalization);
   const activeLanguage = normalizedBlock?.language ?? language;

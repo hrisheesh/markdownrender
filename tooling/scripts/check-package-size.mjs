@@ -9,13 +9,15 @@ const budgets = {
   "dist/index.mjs": 90 * 1024,
   // CJS cannot preserve the ESM rich-renderer code split. Keep a separate
   // ceiling while browser-facing ESM chunks remain under measured budgets.
-  "dist/index.js": 140 * 1024,
+  "dist/index.js": 160 * 1024,
   "dist/core.mjs": 16 * 1024,
   "dist/core.js": 20 * 1024,
-  "dist/ai/index.mjs": 48 * 1024,
-  "dist/ai/index.js": 192 * 1024,
-  "dist/styles.css": 90 * 1024,
-  "dist/math.css": 30 * 1024,
+  "dist/ai/index.mjs": 56 * 1024,
+  "dist/ai/index.js": 220 * 1024,
+  // CSS is emitted as readable, fully scoped static CSS with no consumer-side
+  // processor; gzip transfer sizes remain small despite selector prefixing.
+  "dist/styles.css": 112 * 1024,
+  "dist/math.css": 56 * 1024,
   "dist/core.css": 60 * 1024,
 };
 

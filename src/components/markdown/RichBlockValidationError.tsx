@@ -2,6 +2,7 @@ import React from "react";
 import JSON5 from "json5";
 
 import { emitMarkdownFlowTelemetry, type MarkdownFlowTelemetry } from "../../ai/telemetry";
+import { useMarkdownFlowClass } from "./presentation";
 
 function readableValues(value: unknown, depth = 0): string[] {
   if (depth > 3) return [];
@@ -28,12 +29,13 @@ function fallbackContent(code?: string): { lines: string[]; raw?: string } {
 
 export default function RichBlockValidationError({ reason, blockType = "unknown", code, telemetry }: { reason: string; blockType?: string; code?: string; telemetry?: MarkdownFlowTelemetry }) {
   const content = React.useMemo(() => fallbackContent(code), [code]);
+  const className = useMarkdownFlowClass("fallback", "mf-block", "mf-fallback", "rich-block-fallback");
   React.useEffect(() => {
     emitMarkdownFlowTelemetry(telemetry, { type: "block", outcome: "invalid", blockType, reason });
   }, [blockType, reason, telemetry]);
 
   return (
-    <div role="note" className="rich-block-fallback my-6 px-4 py-4 sm:px-5">
+    <div role="note" className={className}>
       <p className="rich-block-fallback-label">{content.lines.length || content.raw ? "Rendered as plain content" : "Block unavailable"}</p>
       {content.lines.length > 0 && <div className="rich-block-fallback-copy">{content.lines.map((line, index) => <p key={`${index}-${line}`}>{line}</p>)}</div>}
       {content.raw && <pre className="rich-block-fallback-raw"><code>{content.raw}</code></pre>}

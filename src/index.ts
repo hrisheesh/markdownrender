@@ -6,6 +6,15 @@ export type {
   RichBlockRenderers,
   RichMarkdownProps,
 } from "./components/markdown/RichMarkdown";
+export type {
+  MarkdownFlowAppearance,
+  MarkdownFlowClasses,
+  MarkdownFlowClassSlot,
+  MarkdownFlowPresentationProps,
+  MarkdownFlowTheme,
+  MarkdownFlowThemeName,
+  MarkdownFlowThemeVariables,
+} from "./components/markdown/presentation";
 export {
   DEFAULT_MARKDOWN_FLOW_RENDER_POLICY,
   isMarkdownFlowBlockType,

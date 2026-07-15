@@ -17,6 +17,18 @@ describe("AI block security corpus", () => {
     expect(validateMarkdownFlowBlock("image", JSON.stringify({ images: [{ src: "https://example.com/a.png", alt: "a", onerror: "alert(1)" }] }), { allowExternalUrls: true })).toMatchObject({ valid: false });
   });
 
+  it("distinguishes invalid compatibility failures from actual unsafe input", () => {
+    expect(validateMarkdownFlowBlock("chart", JSON.stringify({ data: [{ label: "Jan", mood: "good" }] }))).toMatchObject({
+      valid: false,
+      classification: "invalid",
+    });
+    expect(validateMarkdownFlowBlock("callout", "{oops")).toMatchObject({ valid: false, classification: "invalid" });
+    expect(validateMarkdownFlowBlock("callout", "{\"constructor\":{\"prototype\":{}},\"title\":\"x\"}")).toMatchObject({ valid: false, classification: "unsafe" });
+    expect(validateMarkdownFlowBlock("embed", JSON.stringify({ url: "javascript:alert(1)" }))).toMatchObject({ valid: false, classification: "unsafe" });
+    expect(validateMarkdownFlowBlock("chart", JSON.stringify({ type: "line", dataset: "private", x: "month", y: "revenue" }))).toMatchObject({ valid: false, classification: "unsafe" });
+    expect(validateMarkdownFlowBlock("callout", JSON.stringify({ title: "Allowed" }), { allowedBlocks: ["chart"] })).toMatchObject({ valid: false, classification: "unsafe" });
+  });
+
   it("never accepts arbitrary malformed callout JSON", () => {
     fc.assert(fc.property(fc.string(), (payload) => {
       const outcome = validateMarkdownFlowBlock("callout", payload);

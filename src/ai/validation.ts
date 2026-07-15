@@ -8,7 +8,16 @@ import JSON5 from "json5";
 
 export type MarkdownFlowBlockValidationResult =
   | { valid: true }
-  | { valid: false; reason: string };
+  | { valid: false; reason: string; classification: "invalid" | "unsafe" };
+
+export type MarkdownFlowNormalizationClassification = "exact" | "compatible" | "fallback" | "unsafe";
+
+export type MarkdownFlowReadableFallback =
+  | { kind: "source"; source: string }
+  | { kind: "text"; lines: readonly string[] }
+  | { kind: "list"; ordered: boolean; items: readonly string[] }
+  | { kind: "sections"; sections: readonly { title: string; content?: string }[] }
+  | { kind: "table"; columns: readonly string[]; rows: readonly (readonly (string | number | boolean)[])[] };
 
 export type MarkdownFlowValidationMode = "normalize" | "strict";
 
@@ -21,6 +30,16 @@ export interface MarkdownFlowNormalizedBlock {
   language: MarkdownFlowBlockType;
   code: string;
   normalized: boolean;
+  /** Confidence that the canonical value preserves the model's intent. */
+  confidence: number;
+  /** Human-readable compatibility repairs applied in normalize mode. */
+  transformations: readonly string[];
+  /** Whether this block is exact, compatible, better rendered as fallback, or unsafe. */
+  classification: MarkdownFlowNormalizationClassification;
+  /** Readable content retained when rich rendering is not reliable. */
+  fallback?: MarkdownFlowReadableFallback;
+  /** True only for an actual security or policy boundary, never a schema mismatch. */
+  unsafe?: boolean;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -35,6 +54,24 @@ const itemStatuses = new Set(["complete", "current", "upcoming", "blocked"]);
 const languageAliases: Readonly<Record<string, MarkdownFlowBlockType>> = {
   mermaidjs: "mermaid",
   "mermaid-js": "mermaid",
+  alert: "callout",
+  notice: "callout",
+  stats: "metrics",
+  statistics: "metrics",
+  milestones: "timeline",
+  stepper: "steps",
+  compare: "comparison",
+  faq: "accordion",
+  tabbed: "tabs",
+  cardgrid: "cards",
+  "card-grid": "cards",
+  tree: "filetree",
+  "file-tree": "filetree",
+  tasks: "checklist",
+  blockquote: "quote",
+  graph: "chart",
+  diagram: "mermaid",
+  gallery: "image",
 };
 
 function normalizeLanguage(language: string, options: MarkdownFlowBlockValidationOptions): MarkdownFlowBlockType | undefined {
@@ -113,13 +150,22 @@ function hasUnsafeObjectKeys(value: unknown, depth = 0): boolean {
     || hasUnsafeObjectKeys(child, depth + 1));
 }
 
+function hasUnsafeUrlValues(value: unknown, depth = 0): boolean {
+  if (depth > 12 || value === null || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some((item) => hasUnsafeUrlValues(item, depth + 1));
+  return Object.entries(value as JsonRecord).some(([key, child]) => {
+    if (["url", "src", "href", "link"].includes(key.toLowerCase()) && typeof child === "string" && !/^https?:\/\//.test(child)) return true;
+    return hasUnsafeUrlValues(child, depth + 1);
+  });
+}
+
 function normalizeObjectArray(
   source: unknown,
   normalize: (value: unknown, index: number) => JsonRecord | undefined,
 ): { values: JsonRecord[]; changed: boolean } | undefined {
   if (!Array.isArray(source)) return undefined;
   const values = source.map(normalize).filter((value): value is JsonRecord => Boolean(value));
-  return { values, changed: values.length !== source.length || values.some((value, index) => value !== source[index]) };
+  return { values, changed: values.length !== source.length || values.some((value, index) => JSON.stringify(value) !== JSON.stringify(source[index])) };
 }
 
 function normalizeItem(value: unknown, index: number): JsonRecord | undefined {
@@ -128,17 +174,29 @@ function normalizeItem(value: unknown, index: number): JsonRecord | undefined {
     return title ? { title } : undefined;
   }
   const item = { ...value };
-  moveFirst(item, "title", ["label", "name", "heading", "text"]);
-  moveFirst(item, "description", ["summary", "detail", "body"]);
+  moveFirst(item, "title", ["label", "name", "heading", "headline", "text"]);
+  moveFirst(item, "description", ["summary", "detail", "details", "body"]);
   moveFirst(item, "meta", ["subtitle", "caption"]);
   moveFirst(item, "status", ["state"]);
-  moveFirst(item, "checked", ["completed", "done"]);
+  moveFirst(item, "checked", ["completed", "done", "complete"]);
+  moveFirst(item, "date", ["time", "when", "period", "timestamp"]);
+  moveFirst(item, "value", ["current", "amount", "progress", "percent", "percentage"]);
+  moveFirst(item, "total", ["maximum", "max", "target"]);
   const title = stringValue(item.title) ?? stringValue(item.content) ?? stringValue(item.description) ?? `Item ${index + 1}`;
   const normalized: JsonRecord = { ...item, title };
   for (const key of ["date", "description", "status", "meta", "content"]) {
     const text = stringValue(normalized[key]);
     if (text !== undefined) normalized[key] = text;
     else delete normalized[key];
+  }
+  if (typeof normalized.status === "string") {
+    const statusAliases: Readonly<Record<string, string>> = {
+      done: "complete", completed: "complete", finished: "complete",
+      active: "current", "in-progress": "current", "in_progress": "current",
+      pending: "upcoming", planned: "upcoming", queued: "upcoming",
+      failed: "blocked", error: "blocked",
+    };
+    normalized.status = statusAliases[normalized.status.toLowerCase()] ?? normalized.status.toLowerCase();
   }
   for (const key of ["value", "total"]) {
     const number = numberValue(normalized[key]);
@@ -158,12 +216,17 @@ function normalizeStructuredArray(type: MarkdownFlowBlockType, config: JsonRecor
   let changed = false;
   const itemTypes = ["timeline", "steps", "accordion", "progress", "checklist", "status"];
   if (itemTypes.includes(type)) {
-    changed = moveFirst(config, "items", ["milestones", "steps", "services", "tasks", "entries", "data"]) || changed;
+    changed = moveFirst(config, "items", ["milestones", "events", "steps", "tasks", "services", "sections", "panels", "entries", "nodes", "features", "recommendations", "data"]) || changed;
     const result = normalizeObjectArray(config.items, normalizeItem);
     if (result) { config.items = result.values; changed = result.changed || changed; }
+    if (type === "checklist" && Array.isArray(config.items)) {
+      for (const item of config.items) {
+        if (isRecord(item) && item.checked === undefined && item.status === "complete") { item.checked = true; changed = true; }
+      }
+    }
   }
   if (type === "metrics") {
-    changed = moveFirst(config, "metrics", ["items", "stats", "data", "values"]) || changed;
+    changed = moveFirst(config, "metrics", ["items", "stats", "statistics", "facts", "kpis", "data", "values"]) || changed;
     if (isRecord(config.metrics)) {
       config.metrics = Object.entries(config.metrics).map(([label, value]) => ({ label, value }));
       changed = true;
@@ -171,10 +234,10 @@ function normalizeStructuredArray(type: MarkdownFlowBlockType, config: JsonRecor
     const result = normalizeObjectArray(config.metrics, (value, index) => {
       if (!isRecord(value)) return { label: `Metric ${index + 1}`, value: stringValue(value) ?? "" };
       const metric = { ...value };
-      moveFirst(metric, "label", ["name", "title", "key"]);
-      moveFirst(metric, "value", ["amount", "count", "number"]);
-      moveFirst(metric, "change", ["delta", "trend"]);
-      moveFirst(metric, "detail", ["description", "subtitle", "caption"]);
+      moveFirst(metric, "label", ["name", "title", "heading", "key"]);
+      moveFirst(metric, "value", ["amount", "count", "number", "total"]);
+      moveFirst(metric, "change", ["delta", "trend", "difference"]);
+      moveFirst(metric, "detail", ["description", "details", "summary", "subtitle", "caption"]);
       metric.label = stringValue(metric.label) ?? `Metric ${index + 1}`;
       metric.value = typeof metric.value === "number" ? metric.value : stringValue(metric.value) ?? "";
       for (const key of ["change", "detail"]) {
@@ -188,12 +251,12 @@ function normalizeStructuredArray(type: MarkdownFlowBlockType, config: JsonRecor
     if (result) { config.metrics = result.values; changed = result.changed || changed; }
   }
   if (type === "tabs") {
-    changed = moveFirst(config, "tabs", ["items", "sections", "panels", "options", "data"]) || changed;
+    changed = moveFirst(config, "tabs", ["items", "sections", "panels", "views", "options", "data"]) || changed;
     const result = normalizeObjectArray(config.tabs, (value, index) => {
       if (!isRecord(value)) return { label: `Tab ${index + 1}`, content: stringValue(value) ?? "" };
       const tab = { ...value };
       moveFirst(tab, "label", ["name", "title", "heading"]);
-      moveFirst(tab, "content", ["body", "description", "text", "value"]);
+      moveFirst(tab, "content", ["body", "description", "details", "summary", "text", "value"]);
       tab.label = stringValue(tab.label) ?? `Tab ${index + 1}`;
       tab.content = stringValue(tab.content) ?? stringValue(tab.title) ?? "";
       if (tab.title !== undefined) tab.title = stringValue(tab.title);
@@ -203,12 +266,12 @@ function normalizeStructuredArray(type: MarkdownFlowBlockType, config: JsonRecor
     if (result) { config.tabs = result.values; changed = result.changed || changed; }
   }
   if (type === "cards") {
-    changed = moveFirst(config, "cards", ["items", "results", "options", "data"]) || changed;
+    changed = moveFirst(config, "cards", ["items", "features", "recommendations", "results", "entries", "options", "data"]) || changed;
     const result = normalizeObjectArray(config.cards, (value, index) => {
       if (!isRecord(value)) return { title: stringValue(value) ?? `Card ${index + 1}` };
       const card = { ...value };
       moveFirst(card, "title", ["label", "name", "heading", "headline"]);
-      moveFirst(card, "description", ["body", "content", "summary", "text"]);
+      moveFirst(card, "description", ["body", "content", "summary", "details", "text"]);
       moveFirst(card, "meta", ["subtitle", "caption", "footer"]);
       moveFirst(card, "eyebrow", ["category", "tag", "kicker"]);
       card.title = stringValue(card.title) ?? stringValue(card.description) ?? `Card ${index + 1}`;
@@ -223,12 +286,13 @@ function normalizeStructuredArray(type: MarkdownFlowBlockType, config: JsonRecor
     if (result) { config.cards = result.values; changed = result.changed || changed; }
   }
   if (type === "filetree") {
-    changed = moveFirst(config, "files", ["entries", "items", "nodes", "tree", "data"]) || changed;
+    changed = moveFirst(config, "files", ["entries", "items", "nodes", "tree", "paths", "data"]) || changed;
     const result = normalizeObjectArray(config.files, (value) => {
       if (!isRecord(value)) return { name: stringValue(value) ?? "File" };
       const file = { ...value };
       moveFirst(file, "name", ["path", "label", "title"]);
       moveFirst(file, "detail", ["description", "meta"]);
+      moveFirst(file, "type", ["kind"]);
       file.name = stringValue(file.name) ?? "File";
       if (file.type === "directory" || file.type === "dir") file.type = "folder";
       if (file.type !== "file" && file.type !== "folder") file.type = typeof file.name === "string" && file.name.endsWith("/") ? "folder" : "file";
@@ -241,6 +305,37 @@ function normalizeStructuredArray(type: MarkdownFlowBlockType, config: JsonRecor
     });
     if (result) { config.files = result.values; changed = result.changed || changed; }
   }
+  if (type === "comparison") {
+    changed = moveFirst(config, "columns", ["headers", "options", "choices", "categories"]) || changed;
+    changed = moveFirst(config, "rows", ["items", "features", "criteria", "entries", "data"]) || changed;
+    if (Array.isArray(config.columns)) {
+      const originalColumns = config.columns;
+      const normalizedColumns = originalColumns.map((column, index) => isRecord(column)
+        ? stringValue(firstDefined(column, ["label", "title", "name", "heading"])) ?? `Option ${index + 1}`
+        : stringValue(column) ?? `Option ${index + 1}`);
+      config.columns = normalizedColumns;
+      changed = JSON.stringify(normalizedColumns) !== JSON.stringify(originalColumns) || changed;
+    }
+    const columns = Array.isArray(config.columns) ? config.columns.map(stringValue).filter(isString) : [];
+    if (isRecord(config.rows)) {
+      config.rows = Object.entries(config.rows).map(([label, values]) => ({ label, values: Array.isArray(values) ? values : [values] }));
+      changed = true;
+    }
+    const result = normalizeObjectArray(config.rows, (value, index) => {
+      if (!isRecord(value)) return { label: `Item ${index + 1}`, values: [stringValue(value) ?? ""] };
+      const row = { ...value };
+      moveFirst(row, "label", ["name", "title", "heading", "feature", "criterion"]);
+      moveFirst(row, "values", ["data", "cells", "options"]);
+      row.label = stringValue(row.label) ?? `Item ${index + 1}`;
+      if (!Array.isArray(row.values) && columns.length) row.values = columns.map((column) => row[column]);
+      if (!Array.isArray(row.values)) row.values = [];
+      const values = row.values as unknown[];
+      row.values = values.map((entry) => stringValue(entry) ?? entry).filter((entry) => typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean");
+      keepKeys(row, ["label", "values"]);
+      return row;
+    });
+    if (result) { config.rows = result.values; changed = result.changed || changed; }
+  }
   return changed;
 }
 
@@ -248,7 +343,13 @@ function normalizeStructuredConfig(type: MarkdownFlowBlockType, config: JsonReco
   let changed = false;
   changed = normalizeStructuredArray(type, config) || changed;
   if (type === "quote") changed = renameKey(config, "text", "body") || changed;
-  if ((type === "callout" || type === "quote") && "content" in config) changed = renameKey(config, "content", "body") || changed;
+  if ((type === "callout" || type === "quote")) changed = moveFirst(config, "body", ["content", "description", "details", "summary", "text"]) || changed;
+  changed = moveFirst(config, "title", ["name", "label", "heading"]) || changed;
+  if (typeof config.tone === "string") {
+    const toneAliases: Readonly<Record<string, string>> = { info: "note", informational: "note", tip: "insight", positive: "success", danger: "warning", error: "warning", caution: "warning" };
+    const tone = toneAliases[config.tone.toLowerCase()];
+    if (tone) { config.tone = tone; changed = true; }
+  }
 
   if (Array.isArray(config.items)) {
     for (const item of config.items) {
@@ -293,17 +394,45 @@ function unwrapConfig(language: MarkdownFlowBlockType, value: unknown): { config
 
 function normalizeChartConfig(config: JsonRecord): boolean {
   let changed = false;
-  if (isRecord(config.data)) {
-    const chartData = config.data;
-    if (config.labels === undefined && Array.isArray(chartData.labels)) config.labels = chartData.labels;
-    if (config.categories === undefined && Array.isArray(chartData.categories)) config.categories = chartData.categories;
-    if (config.datasets === undefined && Array.isArray(chartData.datasets)) config.datasets = chartData.datasets;
-    if (config.series === undefined && Array.isArray(chartData.series)) config.series = chartData.series;
-    delete config.data;
+  const chartKeys = new Set(["type", "title", "data", "dataset", "x", "y", "keys", "colors", "lines", "bars", "areas", "max", "labels", "categories", "datasets", "series", "values", "points", "xAxis", "yAxis", "xaxis", "yaxis", "xKey", "yKey", "categoryKey", "labelKey", "valueKey", "dataKey", "name", "heading"]);
+  const directEntries = Object.entries(config);
+  if (directEntries.length && directEntries.every(([key, value]) => !chartKeys.has(key) && numberValue(value) !== undefined)) {
+    for (const key of Object.keys(config)) delete config[key];
+    config.data = directEntries.map(([name, value]) => ({ name, value: numberValue(value) }));
+    config.x = "name";
+    config.y = "value";
+    config.type = "bar";
     changed = true;
   }
+  if (isRecord(config.data)) {
+    const chartData = config.data;
+    const entries = Object.entries(chartData);
+    if (entries.length && entries.every(([, value]) => numberValue(value) !== undefined)) {
+      config.data = entries.map(([name, value]) => ({ name, value: numberValue(value) }));
+      config.x = config.x ?? "name";
+      config.y = config.y ?? "value";
+      changed = true;
+    } else {
+      if (config.labels === undefined && Array.isArray(chartData.labels)) config.labels = chartData.labels;
+      if (config.categories === undefined && Array.isArray(chartData.categories)) config.categories = chartData.categories;
+      if (config.datasets === undefined && Array.isArray(chartData.datasets)) config.datasets = chartData.datasets;
+      if (config.series === undefined && Array.isArray(chartData.series)) config.series = chartData.series;
+      delete config.data;
+      changed = true;
+    }
+  }
+  const categoryAxis = isRecord(config.xaxis) ? config.xaxis : isRecord(config.xAxis) ? config.xAxis : undefined;
+  if (categoryAxis && config.categories === undefined && Array.isArray(categoryAxis.categories)) {
+    config.categories = categoryAxis.categories;
+    delete config.xaxis;
+    delete config.xAxis;
+    changed = true;
+  }
+  if (isRecord(config.yaxis)) { delete config.yaxis; changed = true; }
+  if (isRecord(config.yAxis)) { delete config.yAxis; changed = true; }
   changed = moveFirst(config, "x", ["xAxis", "xKey", "categoryKey", "labelKey"]) || changed;
   changed = moveFirst(config, "y", ["yAxis", "yKey", "valueKey", "dataKey"]) || changed;
+  changed = moveFirst(config, "data", ["values", "points"]) || changed;
   changed = moveFirst(config, "title", ["name", "heading"]) || changed;
   const typeAliases: Record<string, string> = { column: "bar", donut: "pie", doughnut: "pie", spline: "line" };
   if (typeof config.type === "string" && typeAliases[config.type.toLowerCase()]) { config.type = typeAliases[config.type.toLowerCase()]; changed = true; }
@@ -326,6 +455,24 @@ function normalizeChartConfig(config: JsonRecord): boolean {
     const keys = datasets.map((series, index) => stringValue(firstDefined(series, ["name", "label", "dataKey"])) ?? `series${index + 1}`);
     if (keys.length === 1) config.y = config.y ?? keys[0]; else config.keys = config.keys ?? keys;
     changed = true;
+  } else if (!labels && Array.isArray(config.series) && config.series.every(isRecord)) {
+    const series = config.series as JsonRecord[];
+    const longest = Math.max(0, ...series.map((entry) => Array.isArray(entry.data) ? entry.data.length : 0));
+    if (longest > 0 && series.every((entry) => Array.isArray(entry.data))) {
+      const keys = series.map((entry, index) => stringValue(firstDefined(entry, ["name", "label", "dataKey"])) ?? `series${index + 1}`);
+      config.data = Array.from({ length: longest }, (_, index) => {
+        const row: JsonRecord = { name: String(index + 1) };
+        series.forEach((entry, seriesIndex) => {
+          const raw = (entry.data as unknown[])[index];
+          const numeric = numberValue(raw);
+          if (numeric !== undefined) row[keys[seriesIndex]] = numeric;
+        });
+        return row;
+      });
+      config.x = config.x ?? "name";
+      if (keys.length === 1) config.y = config.y ?? keys[0]; else config.keys = config.keys ?? keys;
+      changed = true;
+    }
   } else if (Array.isArray(config.series) && Array.isArray(config.data)) {
     const keys = config.series.map((series) => isRecord(series) ? stringValue(firstDefined(series, ["dataKey", "key", "name"])) : stringValue(series)).filter(isString);
     if (keys.length === 1 && config.y === undefined) config.y = keys[0];
@@ -333,10 +480,21 @@ function normalizeChartConfig(config: JsonRecord): boolean {
     changed = true;
   }
 
+  if (Array.isArray(config.data) && config.data.length > 0 && config.data.every((row) => Array.isArray(row) && row.length >= 2)) {
+    config.data = (config.data as unknown[][]).map((tuple) => ({ x: numberValue(tuple[0]) ?? tuple[0], y: numberValue(tuple[1]) ?? tuple[1] }));
+    config.x = config.x ?? "x";
+    config.y = config.y ?? "y";
+    config.type = config.type ?? "scatter";
+    changed = true;
+  }
+
   if (Array.isArray(config.data) && config.data.every(isRecord)) {
     const rows = config.data as JsonRecord[];
     const keys = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
-    const x = stringValue(config.x) ?? keys.find((key) => rows.some((row) => typeof row[key] === "string")) ?? keys[0];
+    const x = stringValue(config.x)
+      ?? keys.find((key) => rows.every((row) => row[key] !== undefined && numberValue(row[key]) === undefined))
+      ?? keys.find((key) => rows.some((row) => typeof row[key] === "string"))
+      ?? keys[0];
     const numericKeys = keys.filter((key) => key !== x && rows.every((row) => numberValue(row[key]) !== undefined));
     for (const row of rows) for (const key of numericKeys) row[key] = numberValue(row[key]);
     if (x && config.x === undefined) { config.x = x; changed = true; }
@@ -383,8 +541,10 @@ function normalizeMediaConfig(type: MarkdownFlowBlockType, config: JsonRecord): 
       moveFirst(location, "name", ["label", "title"]);
       moveFirst(location, "detail", ["description", "meta"]);
       location.name = stringValue(location.name) ?? `Location ${index + 1}`;
-      location.x = numberValue(firstDefined(location, ["x", "left", "longitude", "lng"])) ?? 50;
-      location.y = numberValue(firstDefined(location, ["y", "top", "latitude", "lat"])) ?? 50;
+      const x = numberValue(firstDefined(location, ["x", "left", "longitude", "lng"]));
+      const y = numberValue(firstDefined(location, ["y", "top", "latitude", "lat"]));
+      if (x !== undefined) location.x = x; else delete location.x;
+      if (y !== undefined) location.y = y; else delete location.y;
       keepKeys(location, ["name", "detail", "x", "y"]);
       return location;
     });
@@ -392,6 +552,70 @@ function normalizeMediaConfig(type: MarkdownFlowBlockType, config: JsonRecord): 
     changed = keepKeys(config, ["title", "locations"]) || changed;
   }
   return changed;
+}
+
+function fallbackScalar(value: unknown): string | number | boolean | undefined {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean" ? value : undefined;
+}
+
+function readableFallback(type: MarkdownFlowBlockType, value: unknown, source: string): MarkdownFlowReadableFallback {
+  if (!isRecord(value)) return { kind: "source", source: source.trim().slice(0, 20_000) };
+
+  if (type === "chart") {
+    const data = Array.isArray(value.data) ? value.data : [];
+    if (data.length && data.every(isRecord)) {
+      const columns = Array.from(new Set((data as JsonRecord[]).flatMap((row) => Object.keys(row))));
+      return { kind: "table", columns, rows: (data as JsonRecord[]).map((row) => columns.map((column) => fallbackScalar(row[column]) ?? "")) };
+    }
+  }
+
+  if (type === "comparison" && Array.isArray(value.columns) && Array.isArray(value.rows)) {
+    const columns = ["", ...value.columns.map((column) => stringValue(column) ?? "")];
+    const rows = value.rows.filter(isRecord).map((row) => [stringValue(row.label) ?? "", ...(Array.isArray(row.values) ? row.values.map((entry) => fallbackScalar(entry) ?? "") : [])]);
+    return { kind: "table", columns, rows };
+  }
+
+  const container = type === "metrics" ? value.metrics
+    : type === "tabs" ? value.tabs
+      : type === "cards" ? value.cards
+        : type === "filetree" ? value.files
+          : value.items;
+  if (Array.isArray(container)) {
+    if (type === "tabs" || type === "cards") {
+      const sections = container.map((entry, index) => isRecord(entry)
+        ? { title: stringValue(firstDefined(entry, ["title", "label", "name", "heading"])) ?? `Section ${index + 1}`, content: stringValue(firstDefined(entry, ["content", "body", "description", "details", "summary", "text"])) }
+        : { title: stringValue(entry) ?? `Section ${index + 1}` });
+      return { kind: "sections", sections };
+    }
+    const items = container.map((entry) => {
+      if (!isRecord(entry)) return stringValue(entry) ?? "";
+      const title = stringValue(firstDefined(entry, ["title", "label", "name", "heading"])) ?? "";
+      const detail = stringValue(firstDefined(entry, ["description", "details", "content", "body", "summary", "text", "value"])) ?? "";
+      return [title, detail].filter(Boolean).join(": ");
+    }).filter(Boolean);
+    return { kind: "list", ordered: type === "timeline" || type === "steps", items };
+  }
+
+  const lines = ["title", "heading", "label", "name", "body", "description", "details", "content", "summary", "text"]
+    .map((key) => stringValue(value[key]))
+    .filter(isString);
+  return lines.length ? { kind: "text", lines } : { kind: "source", source: source.trim().slice(0, 20_000) };
+}
+
+function chartNormalizationConfidence(config: JsonRecord): number {
+  if (typeof config.dataset === "string") return 0.95;
+  if (!Array.isArray(config.data) || config.data.length === 0 || !config.data.every(isRecord)) return 0.35;
+  const rows = config.data as JsonRecord[];
+  const series = [config.y, ...(Array.isArray(config.keys) ? config.keys : [])].filter(isString);
+  if (!series.length || series.some((key) => rows.some((row) => numberValue(row[key]) === undefined))) return 0.45;
+  return 0.92;
+}
+
+function structuredNormalizationConfidence(type: MarkdownFlowBlockType, config: JsonRecord): number {
+  const reason = validateStructuredBlock(type, config, mergePolicy());
+  if (reason) return 0.4;
+  const generatedLabel = JSON.stringify(config).match(/"(?:Item|Metric|Card|Tab|Option|Section) \d+"/);
+  return generatedLabel ? 0.78 : 0.98;
 }
 
 /**
@@ -405,36 +629,92 @@ export function normalizeMarkdownFlowBlock(
 ): MarkdownFlowNormalizedBlock | undefined {
   const normalizedLanguage = normalizeLanguage(language, options);
   if (!normalizedLanguage) return undefined;
+  const languageChanged = normalizedLanguage !== language;
+  const languageTransformations = languageChanged ? [`Mapped block language "${language}" to "${normalizedLanguage}".`] : [];
   if (options.normalization === "strict" || normalizedLanguage === "mermaid") {
-    return { language: normalizedLanguage, code, normalized: normalizedLanguage !== language };
+    return {
+      language: normalizedLanguage,
+      code,
+      normalized: languageChanged,
+      confidence: 1,
+      transformations: languageTransformations,
+      classification: languageChanged ? "compatible" : "exact",
+    };
   }
 
   let config: unknown;
+  let usedJson5 = false;
   try {
-    config = JSON5.parse(code.replace(/^`+|`+$/g, "").trim());
+    const cleaned = code.replace(/^`+|`+$/g, "").trim();
+    try { config = JSON.parse(cleaned); }
+    catch { config = JSON5.parse(cleaned); usedJson5 = true; }
   } catch {
-    return { language: normalizedLanguage, code, normalized: normalizedLanguage !== language };
+    return {
+      language: normalizedLanguage,
+      code,
+      normalized: languageChanged,
+      confidence: 0,
+      transformations: languageTransformations,
+      classification: "fallback",
+      fallback: { kind: "source", source: code.trim().slice(0, 20_000) },
+    };
   }
   // Never normalize executable-looking handlers or prototype-shaped input
   // away. Leave it intact so validation rejects it explicitly.
-  if (hasUnsafeObjectKeys(config)) {
-    return { language: normalizedLanguage, code: JSON.stringify(config), normalized: normalizedLanguage !== language };
+  if (hasUnsafeObjectKeys(config) || ((normalizedLanguage === "embed" || normalizedLanguage === "image") && hasUnsafeUrlValues(config))) {
+    return {
+      language: normalizedLanguage,
+      code: JSON.stringify(config),
+      normalized: languageChanged,
+      confidence: 0,
+      transformations: languageTransformations,
+      classification: "unsafe",
+      unsafe: true,
+    };
   }
   const unwrapped = unwrapConfig(normalizedLanguage, config);
   config = unwrapped.config;
-  if (!isRecord(config)) return { language: normalizedLanguage, code, normalized: normalizedLanguage !== language };
+  if (!isRecord(config)) return {
+    language: normalizedLanguage,
+    code,
+    normalized: languageChanged,
+    confidence: 0,
+    transformations: languageTransformations,
+    classification: "fallback",
+    fallback: readableFallback(normalizedLanguage, config, code),
+  };
 
-  let normalized = normalizedLanguage !== language || unwrapped.changed;
+  const transformations = [...languageTransformations];
+  if (usedJson5) transformations.push("Parsed JSON-compatible model syntax.");
+  if (unwrapped.changed) transformations.push("Unwrapped the block payload into its canonical container.");
+  let normalized = languageChanged || usedJson5 || unwrapped.changed;
+  let shapeChanged = false;
   if (normalizedLanguage === "chart") {
-    normalized = normalizeChartConfig(config) || normalized;
+    shapeChanged = normalizeChartConfig(config);
   } else if (structuredTypes.has(normalizedLanguage)) {
-    normalized = normalizeStructuredConfig(normalizedLanguage, config) || normalized;
+    shapeChanged = normalizeStructuredConfig(normalizedLanguage, config);
   } else {
-    normalized = normalizeMediaConfig(normalizedLanguage, config) || normalized;
+    shapeChanged = normalizeMediaConfig(normalizedLanguage, config);
   }
+  if (shapeChanged) transformations.push(normalizedLanguage === "chart" ? "Normalized chart fields and inferred unambiguous series." : "Normalized block-aware field and container aliases.");
+  normalized = shapeChanged || normalized;
   const canonical = JSON.stringify(config);
+  if (canonical !== code.trim() && transformations.length === 0) transformations.push("Canonicalized block JSON.");
   normalized = normalized || canonical !== code.trim();
-  return { language: normalizedLanguage, code: canonical, normalized };
+  const confidence = !normalized ? 1
+    : normalizedLanguage === "chart" ? chartNormalizationConfidence(config)
+      : structuredTypes.has(normalizedLanguage) ? structuredNormalizationConfidence(normalizedLanguage, config)
+        : 0.95;
+  const classification: MarkdownFlowNormalizationClassification = confidence < 0.6 ? "fallback" : normalized ? "compatible" : "exact";
+  return {
+    language: normalizedLanguage,
+    code: canonical,
+    normalized,
+    confidence,
+    transformations,
+    classification,
+    fallback: readableFallback(normalizedLanguage, config, code),
+  };
 }
 
 function hasOnlyKeys(value: JsonRecord, allowed: readonly string[]): boolean {
@@ -615,6 +895,34 @@ function validateMedia(type: MarkdownFlowBlockType, config: JsonRecord, policy: 
       && typeof location.y === "number") ? null : "The map configuration is invalid.";
 }
 
+function invalid(reason: string): MarkdownFlowBlockValidationResult {
+  return { valid: false, reason, classification: "invalid" };
+}
+
+function unsafe(reason: string): MarkdownFlowBlockValidationResult {
+  return { valid: false, reason, classification: "unsafe" };
+}
+
+function isUnsafeValidationFailure(type: MarkdownFlowBlockType, config: JsonRecord, reason: string, policy: Required<MarkdownFlowRenderPolicy>): boolean {
+  if (hasUnsafeObjectKeys(config)) return true;
+  if (/render policy|approved dataset|outside the approved|disabled by|not permitted|configured (?:size|limit)/i.test(reason)) return true;
+  if (type === "chart") {
+    if (config.dataset !== undefined) return true;
+    if (Array.isArray(config.data) && config.data.length > policy.maxChartDataPoints) return true;
+  }
+  if (structuredTypes.has(type)) {
+    const collections = [config.items, config.metrics, config.rows, config.cards, config.files];
+    if (collections.some((collection) => Array.isArray(collection) && collection.length > policy.maxTableRows)) return true;
+    if (Array.isArray(config.tabs) && config.tabs.length > 12) return true;
+    if (Array.isArray(config.columns) && config.columns.length > 12) return true;
+  }
+  if (type === "image" && Array.isArray(config.images) && config.images.length > policy.maxTableRows) return true;
+  if (type === "map" && Array.isArray(config.locations) && config.locations.length > policy.maxTableRows) return true;
+  if (type === "embed" && typeof config.url === "string" && !/^https?:\/\//.test(config.url)) return true;
+  if (type === "image" && Array.isArray(config.images) && config.images.some((image) => isRecord(image) && typeof image.src === "string" && !/^https?:\/\//.test(image.src))) return true;
+  return false;
+}
+
 /** Validates LLM-facing blocks before they reach an interactive renderer. */
 export function validateMarkdownFlowBlock(
   language: string,
@@ -623,21 +931,25 @@ export function validateMarkdownFlowBlock(
   options: MarkdownFlowBlockValidationOptions = {},
 ): MarkdownFlowBlockValidationResult {
   const block = normalizeMarkdownFlowBlock(language, code, options);
-  if (!block) return { valid: false, reason: `Unsupported AI block language "${language}". Use an enabled Markdown Flow block type.` };
+  if (!block) {
+    const reason = `Unsupported AI block language "${language}". Use an enabled Markdown Flow block type.`;
+    return /<script|javascript:|onerror\s*=|onload\s*=/i.test(code) ? unsafe(reason) : invalid(reason);
+  }
   const { language: normalizedLanguage, code: normalizedCode } = block;
   const policy = mergePolicy(renderPolicy);
-  if (!policy.allowedBlocks.includes(normalizedLanguage)) return { valid: false, reason: `The "${normalizedLanguage}" block type is disabled by this render policy.` };
-  if (normalizedCode.length > policy.maxBlockCharacters) return { valid: false, reason: "This block exceeds the configured size limit." };
-  if (normalizedLanguage === "mermaid") return normalizedCode.trim() ? { valid: true } : { valid: false, reason: "A Mermaid block cannot be empty. Put the diagram definition inside the fence." };
+  if (!policy.allowedBlocks.includes(normalizedLanguage)) return unsafe(`The "${normalizedLanguage}" block type is disabled by this render policy.`);
+  if (normalizedCode.length > policy.maxBlockCharacters) return unsafe("This block exceeds the configured size limit.");
+  if (normalizedLanguage === "mermaid") return normalizedCode.trim() ? { valid: true } : invalid("A Mermaid block cannot be empty. Put the diagram definition inside the fence.");
+  if (block.unsafe) return unsafe("The block contains executable or prototype-shaped properties and was blocked.");
 
   let config: unknown;
   try {
     config = options.normalization === "strict" ? JSON.parse(normalizedCode) : JSON5.parse(normalizedCode);
   } catch (error) {
     const detail = error instanceof SyntaxError && error.message ? ` ${error.message}` : "";
-    return { valid: false, reason: `AI blocks must contain valid JSON.${detail}` };
+    return invalid(`AI blocks must contain valid JSON.${detail}`);
   }
-  if (!isRecord(config)) return { valid: false, reason: "A block configuration must be a JSON object." };
+  if (!isRecord(config)) return invalid("A block configuration must be a JSON object.");
 
   const reason = structuredTypes.has(normalizedLanguage)
     ? validateStructuredBlock(normalizedLanguage, config, policy)
@@ -645,5 +957,6 @@ export function validateMarkdownFlowBlock(
       ? validateChart(config, policy)
       : validateMedia(normalizedLanguage, config, policy);
 
-  return reason ? { valid: false, reason } : { valid: true };
+  if (!reason) return { valid: true };
+  return isUnsafeValidationFailure(normalizedLanguage, config, reason, policy) ? unsafe(reason) : invalid(reason);
 }

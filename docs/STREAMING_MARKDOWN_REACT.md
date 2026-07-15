@@ -1,3 +1,3 @@
 # Streaming Markdown in React
 
-See the [Ultimate User Guide: stream responses](../README.md#stream-responses), including controlled content, SSE, controller mode, completion, retries, and scroll behavior.
+See [Streaming is the same component](../README.md#streaming-is-the-same-component) for the recommended growing-string path and [Backend recipes](./BACKENDS.md) for streamed routes.

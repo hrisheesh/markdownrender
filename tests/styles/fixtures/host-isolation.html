@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <style>
+      :root { --host-accent: hotpink; }
+      body { margin: 13px; background: rgb(18 20 24); color: rgb(236 238 242); font: 17px/1.6 Georgia, serif; }
+      .host-button { margin: 7px; border: 3px dotted lime; background: navy; color: white; font: inherit; box-sizing: content-box; }
+      .material-card { border-radius: 4px; box-shadow: 0 4px 12px #0008; }
+      .shadcn-button { transform: translateY(1px); transition: transform 120ms ease; }
+      .module_hash_abc123 { padding: 19px; }
+    </style>
+  </head>
+  <body class="dark tailwind-host">
+    <main id="light-app" style="color-scheme: light; background: white; color: #18181b">
+      <button id="outside" class="host-button shadcn-button">Outside button</button>
+      <section id="outside-card" class="material-card module_hash_abc123">Host card</section>
+    </main>
+    <aside id="dark-app" style="color-scheme: dark; background: #121418; color: #eceef2">
+      <p id="custom-font" style="font-family: Georgia, serif">Host typography</p>
+    </aside>
+
+    <div class="markdown-render mf-root" data-markdown-flow data-mf-appearance="native" data-mf-theme="inherit">
+      <div class="mf-content">
+        <h2 class="mf-heading mf-h2">Inside response</h2>
+        <p class="mf-paragraph">Markdown Flow content.</p>
+        <div class="mf-metrics">
+          <article class="mf-metric"><strong class="mf-metric-value">24.8K</strong><span class="mf-metric-change">+12.4%</span></article>
+        </div>
+        <div class="mf-chart"><div class="mf-chart-plot">Chart</div></div>
+      </div>
+    </div>
+  </body>
+</html>

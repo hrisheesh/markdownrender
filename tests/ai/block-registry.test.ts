@@ -20,7 +20,7 @@ describe("Markdown Flow block registry", () => {
   });
 
   it("generates compact enabled-block contracts for instruction requests", () => {
-    const instructions = createMarkdownFlowInstructions({ preset: "analytics" });
+    const instructions = createMarkdownFlowInstructions({ blocks: ["chart", "metrics", "mermaid"], detail: "full" });
     expect(instructions).toContain("- chart:");
     expect(instructions).toContain("- metrics:");
     expect(instructions).toContain("- mermaid:");
@@ -37,7 +37,8 @@ describe("Markdown Flow block registry", () => {
     expect(flow.citationFormat).toBe("[cite:source-id]");
     expect(flow.blockTypes).toEqual(MARKDOWN_FLOW_BLOCK_TYPES);
     expect(flow.policy.allowedDatasetIds).toEqual(["sales"]);
-    expect(flow.instructions).toContain("source-1 (brief.pdf)");
-    expect(flow.instructions).toContain("- callout:");
+    expect(flow.compactPrompt).toContain("source-1 (brief.pdf)");
+    expect(flow.fullPrompt).toContain("- callout:");
+    expect(flow.instructions).toBe(flow.compactPrompt);
   });
 });

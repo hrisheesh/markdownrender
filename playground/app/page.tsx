@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { Check, Copy, Eye, FileText, Trash2 } from "lucide-react";
-import RichMarkdown from "@/components/markdown/RichMarkdown";
+import React, { useEffect, useRef, useState } from "react";
+import { Check, Copy, Eye, FileText, Play, Trash2 } from "lucide-react";
+import { AIResponse } from "@/ai/AIResponse";
 
 function createStressAppendix() {
   const accounts = ["Aster Health", "Northstar Bank", "Cedar Retail", "Morrow Energy", "Helio Labs", "Juniper Legal", "Atlas Freight", "Lumen Schools", "Rook Security", "Orchid Hotels", "Kite Media", "Harbor Works", "Pine Finance", "Vela Bio", "Sable Commerce"];
@@ -211,6 +211,227 @@ The weighted confidence score remains $S = 0.45q + 0.35c + 0.20f$, where $q$ is 
 }
 
 const STRESS_APPENDIX = createStressAppendix();
+
+const AI_RESPONSE_SAMPLES = [
+  {
+    id: "product-brief",
+    label: "Product brief",
+    description: "Long-form product recommendation with ordinary Markdown, a table, and citations.",
+    content: `# Migration recommendation
+
+## Decision
+
+Move the team to the staged migration plan. It gives us the lowest operational risk while preserving the option to pause after the first customer cohort. The evidence is consistent across support volume, release telemetry, and the security review. [cite:release-brief] [cite:security-review]
+
+The recommendation is intentionally simple: ship the compatibility layer first, observe real traffic for one week, and only then remove the legacy endpoint. There is no need to force every customer into the new flow on day one.
+
+## Why this is the right trade-off
+
+The current implementation is reliable but expensive to maintain. The replacement reduces duplicate logic and improves response consistency, while the compatibility layer keeps the rollout reversible. The main risk is not the renderer itself; it is the quality of the source material that reaches the model.
+
+| Option | Reader impact | Engineering cost | Risk | Recommendation |
+| :--- | :--- | :--- | :--- | :--- |
+| Big-bang replacement | Fast if successful | High | High | Avoid |
+| Staged migration | Gradual and visible | Medium | Low | **Choose this** |
+| Keep legacy forever | No immediate change | Rising over time | Medium | Avoid |
+
+## First-week checklist
+
+- [x] Keep the raw model response available in diagnostics.
+- [x] Send trusted citation metadata alongside the response.
+- [ ] Compare grounded-answer rate before and after rollout.
+- [ ] Review the first ten escalation paths with support.
+
+> The goal is not to create more interface. It is to let the answer become easier to trust.
+
+## What would change the decision
+
+Pause if the error rate rises above the existing baseline, if citations stop resolving, or if a customer-facing answer loses important context during streaming. Otherwise, continue to the next cohort after seven days of stable results.`,
+  },
+  {
+    id: "incident-review",
+    label: "Incident review",
+    description: "A realistic operational response with a timeline, code, and calm recovery guidance.",
+    content: `# Search latency incident: final update
+
+The elevated latency was caused by a retrieval fan-out regression introduced in the 09:15 deployment. The system stayed available, but p95 response time increased from 142ms to 1.8s for roughly 24 minutes. No customer data was lost and no authorization boundary was bypassed. [cite:incident-log]
+
+## Timeline
+
+- **09:15** — The release reached 100% of production traffic.
+- **09:22** — p95 latency alert triggered; on-call began triage.
+- **09:29** — Retrieval fan-out was identified as the common factor.
+- **09:36** — Traffic was rolled back to the previous configuration.
+- **09:39** — Latency returned to baseline.
+- **10:10** — We completed a sample review of affected answers.
+
+## Root cause
+
+A new fallback path performed two retrieval passes when the first pass returned fewer than five passages. That behavior was safe for correctness but not bounded for latency. The change looked harmless in local tests because the fixture corpus returned enough passages on the first pass.
+
+\`\`\`ts
+const passages = await retrieve(query);
+return passages.length < 5
+  ? [...passages, ...(await retrieve(query, { broaden: true }))]
+  : passages;
+\`\`\`
+
+## Follow-up
+
+1. Add a hard retrieval budget to the request path.
+2. Add sparse-result fixtures to the release test suite.
+3. Keep the user-facing response calm: show partial Markdown as it arrives instead of waiting for optional structured presentation.
+
+The rollback fixed the immediate problem. The follow-up work is about making the safe path fast as well.`,
+  },
+  {
+    id: "research-answer",
+    label: "Research answer",
+    description: "A longer RAG-style answer with citations, math, and an optional metric block.",
+    content: `# Can EU administrators export audit history?
+
+Yes. EU workspace administrators can export audit history, provided the workspace is on the current retention plan and the export stays within the 90-day window. The export includes actor, timestamp, action, and resource metadata; it does not include deleted content bodies. [cite:policy-eu] [cite:audit-guide]
+
+## Important limits
+
+- Exports are generated asynchronously and are retained for 24 hours.
+- A workspace administrator must initiate the request.
+- Legal holds can extend retention but do not grant broader export access.
+- Older workspaces may need a retention-plan migration before the export control appears.
+
+\`\`\`metrics
+{
+  "title": "Evidence quality",
+  "metrics": [
+    { "label": "Policy freshness", "value": "12 days", "detail": "last reviewed" },
+    { "label": "Source agreement", "value": "2 / 2", "detail": "no contradiction" },
+    { "label": "Answer confidence", "value": "High", "detail": "direct policy match" }
+  ]
+}
+\`\`\`
+
+## Why the answer is qualified
+
+The retention period is a policy condition, not a technical limitation. If the workspace was created before the current plan, confirm the plan in the admin console before promising an export date. A useful confidence model is $S = 0.45q + 0.35c + 0.20f$, where evidence quality, citation coverage, and freshness should all be visible to the reader.
+
+## Recommended next step
+
+Ask the administrator to open **Settings → Audit history → Export**, select the requested date range, and confirm that the workspace is marked as EU. If the control is absent, send the workspace ID to support with the current plan name.`,
+  },
+  {
+    id: "messy-model",
+    label: "Messy model output",
+    description: "Mixed prose and imperfect structure to inspect flexible rendering and fallbacks.",
+    content: `# Weekly delivery note
+
+We are on track for the customer preview, with two details worth watching: the final copy review and the data migration dry run. The next release does not need a dashboard to communicate this; the useful information is the decision, the open risk, and the owner.
+
+\`\`\`timeline
+{
+  title: "Preview readiness",
+  milestones: [
+    { date: "Mon", heading: "Copy review", description: "Final approval from content.", status: "complete" },
+    { date: "Wed", heading: "Migration rehearsal", description: "Run against anonymized production data.", status: "current" },
+    { date: "Fri", heading: "Customer preview", description: "Invite the first design partners.", status: "upcoming" }
+  ]
+}
+\`\`\`
+
+The migration rehearsal is the only active release gate. If it finds a mismatch, we delay the preview rather than add a manual workaround.
+
+\`\`\`chart
+{ "title": "Incomplete chart from a model", "keys": ["value"] }
+\`\`\`
+
+That incomplete block should remain isolated: this paragraph and the final recommendation must still be readable. Keep the response direct, preserve ordinary Markdown, and use specialized UI only when the content benefits from it.`,
+  },
+] as const;
+
+const PLAYGROUND_SOURCES = [
+  { id: "release-brief", title: "Release brief", preview: "Staged migration decision and rollout constraints." },
+  { id: "security-review", title: "Security review", preview: "No authorization-impacting changes found." },
+  { id: "incident-log", title: "Incident timeline", preview: "Latency regression and rollback record." },
+  { id: "policy-eu", title: "EU audit retention policy", preview: "Export eligibility and retention period." },
+  { id: "audit-guide", title: "Audit export guide", preview: "Administrator workflow and export contents." },
+];
+
+const FENCE = "```";
+const COMPONENT_GALLERY_RESPONSE = `# Response component gallery
+
+This is one deliberately varied AI answer. It mixes concise decision surfaces with dense reference material, so you can judge scale, spacing, fallbacks, and hierarchy in a real message flow.
+
+${FENCE}callout
+{"tone":"insight","title":"Use structure only when it improves reading","body":"This response is ordinary Markdown first. Each richer surface earns its place by making a specific kind of information faster to understand."}
+${FENCE}
+
+${FENCE}metrics
+{"title":"Release pulse","metrics":[{"label":"Active readers","value":"24.8K","change":"+12.4%","detail":"vs last week"},{"label":"Grounded answers","value":"91%","change":"+4.1%","detail":"sampled responses"},{"label":"p95 response","value":"142ms","change":"-18ms","detail":"streaming path"}]}
+${FENCE}
+
+${FENCE}timeline
+{"title":"Delivery window","items":[{"date":"Mon","title":"Design review","description":"Confirm the reading order and responsive behavior.","status":"complete"},{"date":"Wed","title":"Integration test","description":"Install the tarball in a clean consuming application.","status":"current"},{"date":"Fri","title":"Release","description":"Publish only when the whole surface remains calm.","status":"upcoming"}]}
+${FENCE}
+
+${FENCE}comparison
+{"title":"Reader-facing choices","columns":["Plain Markdown","Enhanced response","Custom application UI"],"rows":[{"label":"Streams immediately","values":[true,true,"Depends"]},{"label":"Table support","values":["Native","Native + adaptive","Manual"]},{"label":"Malformed output","values":["Readable","Readable fallback","Manual handling"]},{"label":"Authoring effort","values":["Low","Low","High"]}]}
+${FENCE}
+
+${FENCE}accordion
+{"title":"Details when the reader asks","items":[{"title":"Why is this not a card?","content":"Narrative sections stay in the document flow. Containers appear only where interaction, data grouping, or a clear state boundary makes them useful.","open":true},{"title":"What happens on malformed data?","content":"The failed block stays local. The surrounding answer remains readable and the renderer does not turn a recoverable content issue into a broken page."},{"title":"How should streaming feel?","content":"Text should arrive calmly in a stable reading surface. Completed sections should not jump or restart when a later section becomes available."}]}
+${FENCE}
+
+${FENCE}tabs
+{"title":"One answer, three readers","tabs":[{"label":"Executive","title":"Decision","content":"Approve the staged release with a one-week observation window."},{"label":"Operator","title":"Action","content":"Watch latency, citation resolution, and the first customer escalation paths."},{"label":"Engineer","title":"Implementation","content":"Accumulate plain text, pass it to AIResponse, and only add structured output when it is materially clearer."}]}
+${FENCE}
+
+${FENCE}cards
+{"title":"Three useful patterns","cards":[{"eyebrow":"01","title":"Decision","description":"One clear recommendation, with the evidence visible nearby.","meta":"Short"},{"eyebrow":"02","title":"Progress","description":"A bounded release gate with an owner and a visible next step.","meta":"Operational"},{"eyebrow":"03","title":"Reference","description":"Supporting material that stays out of the main narrative until needed.","meta":"Detailed"}]}
+${FENCE}
+
+${FENCE}filetree
+{"title":"Answer handoff","files":[{"name":"release-answer","type":"folder"},{"name":"response.md","depth":1,"detail":"streamed prose"},{"name":"sources","type":"folder","depth":1},{"name":"policy-eu.md","depth":2,"detail":"primary evidence"},{"name":"review-notes.md","depth":1,"detail":"open questions"}]}
+${FENCE}
+
+${FENCE}progress
+{"title":"Release gates","items":[{"title":"Package verification","value":100,"description":"Unit, rendering, accessibility, security, and packed-package checks."},{"title":"Consumer integration","value":78,"description":"Confirm a clean Next.js application behaves as expected."},{"title":"Visual review","value":86,"description":"Inspect narrow, medium, and wide message surfaces."}]}
+${FENCE}
+
+${FENCE}checklist
+{"title":"Before publishing","items":[{"title":"Test a normal Markdown response","checked":true},{"title":"Test sources and inline citations","checked":true},{"title":"Test a partial structured fence","checked":false},{"title":"Test the consuming app build","checked":false}]}
+${FENCE}
+
+${FENCE}status
+{"title":"Current system state","items":[{"title":"Core renderer","description":"Ordinary Markdown, tables, code, math, and diagrams are available.","meta":"Healthy","status":"complete"},{"title":"Rich enhancement","description":"Optional components accept flexible, readable model output.","meta":"Observing","status":"current"},{"title":"External consumer test","description":"Run against an independent application before publish.","meta":"Next","status":"upcoming"}]}
+${FENCE}
+
+${FENCE}quote
+{"body":"The interface should make the answer easier to trust, not more impressive than the answer.","attribution":"Markdown Flow","role":"Rendering principle"}
+${FENCE}
+
+${FENCE}chart
+{"type":"area","title":"Answer quality through the week","data":[{"name":"Mon","quality":73},{"name":"Tue","quality":78},{"name":"Wed","quality":82},{"name":"Thu","quality":86},{"name":"Fri","quality":91}],"keys":["quality"]}
+${FENCE}
+
+${FENCE}mermaid
+flowchart LR
+  A[Model text] --> B[AIResponse]
+  B --> C{Needs richer form?}
+  C -->|No| D[Readable Markdown]
+  C -->|Yes| E[Validated component]
+  E --> F[Reader]
+${FENCE}
+
+## Dense reference table
+
+| Surface | Best for | Small response | Long response | Mobile behavior |
+| :--- | :--- | :--- | :--- | :--- |
+| Prose | Explanation | Excellent | Excellent | Reflows naturally |
+| Metrics | Headline values | Excellent | Good | Stacks cleanly |
+| Comparison | A decision | Good | Good | Scrolls locally |
+| Timeline | Sequence | Excellent | Good | Remains legible |
+| Chart | Pattern in numbers | Good | Excellent | Uses responsive width |
+
+The gallery deliberately ends in ordinary prose. The reader should never need a component just to understand the conclusion: render the clearest form, preserve the raw answer, and make every specialized block independently fallible.`;
 
 export default function MarkdownPlayground() {
   const [markdown, setMarkdown] = useState<string>(`# Markdown Flow playground
@@ -686,14 +907,64 @@ The following 24 workstreams intentionally flood the document with realistic, mi
 ${STRESS_APPENDIX}
 `);
 
+  const [selectedSample, setSelectedSample] = useState("custom");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [visibleCharacters, setVisibleCharacters] = useState(markdown.length);
+  const [tokensPerSecond, setTokensPerSecond] = useState(24);
+  const streamTimer = useRef<number | null>(null);
   const [activePanel, setActivePanel] = useState<"editor" | "preview">("editor");
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+
+  useEffect(() => () => {
+    if (streamTimer.current !== null) window.clearInterval(streamTimer.current);
+  }, []);
+
+  const renderedContent = isStreaming ? markdown.slice(0, visibleCharacters) : markdown;
 
   const wordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
   const characterCount = markdown.length;
   const lineCount = markdown.length === 0 ? 0 : markdown.split(/\r\n|\r|\n/).length;
   const isEmpty = markdown.trim().length === 0;
+
+  function stopStreaming() {
+    if (streamTimer.current !== null) {
+      window.clearInterval(streamTimer.current);
+      streamTimer.current = null;
+    }
+    setIsStreaming(false);
+  }
+
+  function selectSample(id: string) {
+    stopStreaming();
+    setSelectedSample(id);
+    const sample = id === "component-gallery"
+      ? { content: COMPONENT_GALLERY_RESPONSE }
+      : AI_RESPONSE_SAMPLES.find((item) => item.id === id);
+    if (sample) {
+      setMarkdown(sample.content);
+      setVisibleCharacters(sample.content.length);
+    }
+  }
+
+  function replayStreaming() {
+    stopStreaming();
+    if (isEmpty) return;
+    setVisibleCharacters(0);
+    setIsStreaming(true);
+    streamTimer.current = window.setInterval(() => {
+      setVisibleCharacters((current) => {
+        const charactersPerTick = Math.max(1, Math.round((tokensPerSecond * 4) / 25));
+        const next = Math.min(current + charactersPerTick, markdown.length);
+        if (next >= markdown.length) {
+          if (streamTimer.current !== null) window.clearInterval(streamTimer.current);
+          streamTimer.current = null;
+          setIsStreaming(false);
+        }
+        return next;
+      });
+    }, 24);
+  }
 
   async function copyMarkdown() {
     if (isEmpty) {
@@ -732,6 +1003,43 @@ ${STRESS_APPENDIX}
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:justify-end">
+            <div className="flex items-center gap-2">
+              <label htmlFor="response-sample" className="sr-only">AI response sample</label>
+              <select
+                id="response-sample"
+                value={selectedSample}
+                onChange={(event) => selectSample(event.target.value)}
+                className="h-8 max-w-[12rem] rounded-lg border border-hairline bg-white px-2.5 text-xs font-medium text-charcoal outline-none transition-colors focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+              >
+                <option value="custom">Custom document</option>
+                <option value="component-gallery">All components gallery</option>
+                {AI_RESPONSE_SAMPLES.map((sample) => (
+                  <option key={sample.id} value={sample.id}>{sample.label}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={isStreaming ? stopStreaming : replayStreaming}
+                disabled={isEmpty}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-hairline bg-white px-2.5 text-xs font-medium text-charcoal transition-colors hover:bg-surface-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40 disabled:opacity-35"
+              >
+                {isStreaming ? <><span className="size-1.5 rounded-full bg-brand-coral" /> Stop</> : <><Play size={12} fill="currentColor" aria-hidden="true" /> Replay stream</>}
+              </button>
+              <label className="hidden items-center gap-2 rounded-lg border border-hairline bg-white px-2.5 py-1 sm:flex" title="Approximate tokens per second during replay">
+                <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-steel">Speed</span>
+                <input
+                  type="range"
+                  min="4"
+                  max="100"
+                  step="2"
+                  value={tokensPerSecond}
+                  onChange={(event) => setTokensPerSecond(Number(event.target.value))}
+                  className="h-1 w-16 accent-brand-blue"
+                  aria-label="Streaming tokens per second"
+                />
+                <output className="w-10 text-right text-[11px] font-medium tabular-nums text-charcoal">{tokensPerSecond} t/s</output>
+              </label>
+            </div>
             <div
               className="grid grid-cols-2 rounded-lg border border-hairline bg-surface-soft p-1 md:hidden"
               role="tablist"
@@ -800,7 +1108,12 @@ ${STRESS_APPENDIX}
               </button>
               <button
                 type="button"
-                onClick={() => setMarkdown("")}
+                onClick={() => {
+                  stopStreaming();
+                  setSelectedSample("custom");
+                  setMarkdown("");
+                  setVisibleCharacters(0);
+                }}
                 disabled={isEmpty}
                 className="inline-flex size-8 items-center justify-center rounded-md text-steel transition-colors duration-150 hover:bg-surface-soft hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40 disabled:opacity-35"
                 title="Clear editor"
@@ -814,7 +1127,12 @@ ${STRESS_APPENDIX}
             id="markdown-input"
             className="editor-canvas internal-scroll min-h-0 flex-1 resize-none bg-transparent px-5 py-5 font-mono text-[12px] leading-6 text-charcoal outline-none placeholder:text-muted sm:px-6 sm:py-6"
             value={markdown}
-            onChange={(e) => setMarkdown(e.target.value)}
+            onChange={(e) => {
+              stopStreaming();
+              setSelectedSample("custom");
+              setMarkdown(e.target.value);
+              setVisibleCharacters(e.target.value.length);
+            }}
             placeholder="Start typing markdown..."
             aria-label="Markdown input"
             aria-describedby="document-stats"
@@ -853,7 +1171,11 @@ ${STRESS_APPENDIX}
                   </div>
                 </div>
               ) : (
-                <RichMarkdown content={markdown} />
+                <AIResponse
+                  content={renderedContent}
+                  sources={PLAYGROUND_SOURCES}
+                  status={isStreaming ? "streaming" : "complete"}
+                />
               )}
             </div>
           </div>

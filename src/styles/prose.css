@@ -1,0 +1,84 @@
+/* Ordinary Markdown is the primary rendering path. These structural hooks
+   intentionally inherit the host font and color. */
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-content) {
+  min-width: 0;
+  color: var(--mf-text);
+  font-family: var(--mf-font);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-heading) {
+  margin-block: var(--mf-section-gap) 0.75rem;
+  color: var(--mf-text);
+  font-family: var(--mf-font);
+  font-weight: 650;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-heading:first-child) { margin-top: 0; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-h1) { max-width: 24ch; font-size: clamp(2rem, 7vw, 2.75rem); letter-spacing: -0.045em; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-h2) { font-size: clamp(1.5rem, 5vw, 1.875rem); letter-spacing: -0.035em; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-h3) { font-size: clamp(1.125rem, 4vw, 1.25rem); letter-spacing: -0.025em; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-h4, .mf-h5) { font-size: 1rem; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-h6) { color: var(--mf-text-subtle); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-paragraph) { margin-block: 1.125rem; line-height: 1.75; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-paragraph:first-child) { margin-top: 0; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-paragraph:last-child) { margin-bottom: 0; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-strong) { color: var(--mf-text); font-weight: 650; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-emphasis) { font-style: italic; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-deleted) { color: var(--mf-text-subtle); }
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-blockquote) {
+  margin-block: var(--mf-block-gap);
+  border-inline-start: 3px solid color-mix(in srgb, var(--mf-accent) 65%, transparent);
+  padding: 0.25rem 0 0.25rem 1.25rem;
+  color: var(--mf-text-muted);
+}
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-list) { margin-block: 1.125rem; padding-inline-start: 1.5rem; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-list-unordered) { list-style: disc; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-list-ordered) { list-style: decimal; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-list-item) { margin-block: 0.4rem; padding-inline-start: 0.2rem; line-height: 1.7; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-list-item)::marker { color: var(--mf-accent); font-weight: 600; }
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-task-control) { position: relative; display: inline-flex; width: 1.125rem; height: 1.125rem; margin-inline-end: 0.5rem; translate: 0 0.2rem; align-items: center; justify-content: center; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-task-input) { width: 1rem; height: 1rem; margin-inline-end: 0.5rem; border: 1px solid var(--mf-border-strong); border-radius: 999px; accent-color: var(--mf-accent); }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-task-control .mf-task-input) { width: 100%; height: 100%; margin: 0; appearance: none; background: var(--mf-surface); }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-task-control .mf-task-input:checked) { border-color: var(--mf-accent); background: var(--mf-accent); }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-task-check) { position: absolute; pointer-events: none; color: var(--mf-on-accent); font-size: 0.6875rem; font-weight: 700; line-height: 1; }
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-link) {
+  color: var(--mf-accent);
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--mf-accent) 35%, transparent);
+  text-underline-offset: 0.22em;
+}
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-link:hover) { color: var(--mf-accent-strong); text-decoration-color: currentColor; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-link:focus-visible) { outline: 2px solid color-mix(in srgb, var(--mf-accent) 55%, transparent); outline-offset: 3px; border-radius: 2px; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-divider) { margin-block: var(--mf-section-gap); border: 0; border-top: 1px solid var(--mf-border); }
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-inline-code, .mf-code-source, .mf-code) { font-family: var(--mf-font-mono); }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-inline-code) { border: 1px solid var(--mf-border); border-radius: 0.35rem; background: var(--mf-surface-subtle); padding: 0.12em 0.4em; color: var(--mf-text); font-size: 0.875em; overflow-wrap: anywhere; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-code) { max-width: 100%; margin-block: var(--mf-block-gap); overflow-x: auto; border: 1px solid var(--mf-border); border-radius: var(--mf-radius-md); background: var(--mf-surface-subtle); }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-code-source) { display: block; min-width: max-content; padding: 1rem; color: var(--mf-text); font-size: 0.875rem; line-height: 1.65; }
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-table-scroll) { max-width: 100%; margin-block: var(--mf-block-gap); overflow-x: auto; border: 1px solid var(--mf-border); border-radius: var(--mf-radius-md); }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-table) { width: max-content; min-width: 100%; border-collapse: collapse; color: var(--mf-text); font-size: 0.875rem; text-align: start; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-table-head) { background: var(--mf-surface-subtle); color: var(--mf-text-muted); font-size: 0.75rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-table-row + .mf-table-row) { border-top: 1px solid var(--mf-border); }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-table-header-cell, .mf-table-cell) { max-width: 28rem; padding: 0.75rem 1rem; vertical-align: top; white-space: normal; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-table-header-cell) { font-weight: 650; white-space: nowrap; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-table-row:hover) { background: color-mix(in srgb, var(--mf-accent) 3%, transparent); }
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-markdown-image) { display: block; width: auto; max-width: 100%; max-height: min(70svh, 40rem); height: auto; margin-block: var(--mf-block-gap); border-radius: var(--mf-radius-lg); object-fit: contain; }
+
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-citation) { position: relative; display: inline-block; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-citation-trigger) { display: inline-flex; width: 1.2rem; height: 1.2rem; margin-inline: 0.2rem; align-items: center; justify-content: center; border-radius: 999px; background: var(--mf-accent); color: var(--mf-on-accent); font-size: 0.625rem; font-weight: 700; vertical-align: 0.1em; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-citation-popover) { position: absolute; z-index: 50; bottom: calc(100% + 0.75rem); left: 50%; width: min(19rem, calc(100vw - 2rem)); translate: -50% 0; border: 1px solid var(--mf-border); border-radius: var(--mf-radius-md); background: Canvas; padding: 0.875rem; color: CanvasText; font-size: 0.75rem; line-height: 1.55; text-align: start; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-citation-title) { margin-bottom: 0.25rem; font-weight: 650; }
+:where(.markdown-render, .mf-root):not([data-mf-appearance="unstyled"]) :where(.mf-citation-context) { margin-bottom: 0.5rem; color: var(--mf-text-muted); font-weight: 600; }
+

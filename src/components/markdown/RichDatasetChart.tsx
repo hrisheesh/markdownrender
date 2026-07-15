@@ -6,6 +6,7 @@ import type { MarkdownFlowDatasetResolver } from "../../ai/data";
 import { useMarkdownFlowDataset } from "../../ai/data";
 import { emitMarkdownFlowTelemetry, type MarkdownFlowTelemetry } from "../../ai/telemetry";
 import RichChart, { type ChartConfig } from "./RichChart";
+import { useMarkdownFlowClass } from "./presentation";
 
 type DatasetChartConfig = Omit<ChartConfig, "data"> & {
   dataset: string;
@@ -23,6 +24,7 @@ function parseConfig(configStr: string): DatasetChartConfig | null {
 }
 
 function DataState({ status, onRefresh }: { status: "loading" | "unavailable" | "denied" | "error"; onRefresh: () => void }) {
+  const className = useMarkdownFlowClass("fallback", "mf-block", "mf-fallback", "mf-data-state", "rich-block-state");
   const message = status === "loading"
     ? "Loading approved data…"
     : status === "denied"
@@ -31,9 +33,9 @@ function DataState({ status, onRefresh }: { status: "loading" | "unavailable" | 
         ? "Data is unavailable."
         : "Approved data could not be loaded.";
   return (
-    <div role={status === "loading" ? "status" : "alert"} aria-live="polite" className="rich-block-state my-6 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5 text-sm leading-6 sm:px-5">
-      <span className="inline-flex items-center gap-2.5">{status === "loading" && <span className="size-2 animate-pulse rounded-full bg-brand-blue shadow-[0_0_0_4px_rgba(79,99,217,0.08)]" aria-hidden="true" />}{message}</span>
-      {status === "unavailable" || status === "error" ? <button type="button" onClick={onRefresh} className="rich-block-control px-2.5 text-xs font-semibold text-brand-blue">Retry</button> : null}
+    <div role={status === "loading" ? "status" : "alert"} aria-live="polite" className={className} data-mf-state={status}>
+      <span>{status === "loading" && <span className="mf-loading-indicator" aria-hidden="true" />}{message}</span>
+      {status === "unavailable" || status === "error" ? <button type="button" onClick={onRefresh} className="mf-control rich-block-control">Retry</button> : null}
     </div>
   );
 }

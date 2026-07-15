@@ -1,3 +1,3 @@
 # React Markdown renderer
 
-See the [Ultimate User Guide: install and choose an entry point](../README.md#install-and-choose-an-entry-point) and [render Markdown in React](../README.md#render-markdown-in-react).
+See the [five-minute quick start](./QUICK_START.md) and [package entry points](../README.md#package-entry-points).

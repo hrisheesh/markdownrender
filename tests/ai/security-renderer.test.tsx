@@ -31,4 +31,16 @@ describe("renderer trust boundary", () => {
     expect(malformed.container.textContent).toContain("Rendered as plain content");
     expect(malformed.container.textContent).toContain("Launch");
   });
+
+  it("does not impose a block-count policy unless the host explicitly supplies one", () => {
+    const block = '```callout\n{"title":"Available"}\n```';
+    const content = Array.from({ length: 33 }, () => block).join("\n\n");
+    const open = render(<RichMarkdown content={content} />);
+
+    expect(open.container.textContent).not.toContain("exceeds the configured number of AI blocks");
+    expect(open.container.querySelectorAll(".mf-callout")).toHaveLength(33);
+
+    const restricted = render(<RichMarkdown content={`${block}\n\n${block}`} renderPolicy={{ maxBlocks: 1 }} />);
+    expect(restricted.container.textContent).toContain("exceeds the configured number of AI blocks");
+  });
 });

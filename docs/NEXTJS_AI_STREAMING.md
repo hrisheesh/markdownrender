@@ -1,3 +1,3 @@
 # Next.js AI streaming
 
-See the [Ultimate User Guide: streaming responses](../README.md#stream-responses) and [Next.js App Router example](../README.md#nextjs-app-router).
+See the [growing-string streaming example](../README.md#streaming-is-the-same-component) and complete [Next.js App Router recipe](./BACKENDS.md#nextjs-app-router).

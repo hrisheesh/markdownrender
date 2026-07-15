@@ -46,8 +46,8 @@ test("packed package ships a runnable CLI that loads only the bundled API", asyn
 
   const cli = join(installedPackage, manifest.bin["markdown-flow"]);
   const result = await execFileAsync(process.execPath, [cli, "generate-prompt", "--preset", "rag"], { cwd: installRoot });
-  assert.match(result.stdout, /Markdown Flow contract:/);
-  assert.match(result.stdout, /Allowed block types:/);
+  assert.match(result.stdout, /Markdown Flow markdown-flow\/v1:/);
+  assert.match(result.stdout, /Available blocks:/);
 
   const config = await execFileAsync(process.execPath, [cli, "generate-config", "--preset", "rag", "--format", "json"], { cwd: installRoot });
   assert.equal(JSON.parse(config.stdout).preset, "rag");

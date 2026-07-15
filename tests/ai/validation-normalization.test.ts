@@ -51,4 +51,55 @@ describe("Markdown Flow validation normalization", () => {
     expect(validateMarkdownFlowBlock("tabs", JSON.stringify({ title: "Details", tabs: [] }))).toEqual({ valid: true });
     expect(validateMarkdownFlowBlock("comparison", JSON.stringify({ columns: [], rows: [] }))).toEqual({ valid: true });
   });
+
+  it("normalizes block-aware container, child, completion, date, and language aliases", () => {
+    expect(validateMarkdownFlowBlock("milestones", JSON.stringify({ events: [{ heading: "Beta", when: "Tomorrow", details: "Ship it", state: "planned" }] }))).toEqual({ valid: true });
+    const checklist = normalizeMarkdownFlowBlock("tasks", JSON.stringify({ recommendations: [{ name: "Review", status: "completed" }] }));
+    expect(checklist).toMatchObject({
+      language: "checklist",
+      classification: "compatible",
+    });
+    expect(JSON.parse(checklist?.code ?? "{}")).toEqual({ items: [{ title: "Review", status: "complete", checked: true }] });
+    expect(normalizeMarkdownFlowBlock("tree", JSON.stringify({ nodes: [{ path: "src/", kind: "directory" }] }))).toMatchObject({
+      code: JSON.stringify({ files: [{ name: "src/", type: "folder" }] }),
+    });
+    expect(validateMarkdownFlowBlock("compare", JSON.stringify({ headers: ["Basic", "Pro"], criteria: [{ feature: "Seats", Basic: 2, Pro: 10 }] }))).toEqual({ valid: true });
+  });
+
+  it("infers row, multi-series, object-map, and tuple chart forms", () => {
+    expect(normalizeMarkdownFlowBlock("chart", JSON.stringify({ data: [{ month: "Jan", revenue: 120, cost: 80 }] }))).toMatchObject({
+      confidence: expect.any(Number),
+      classification: "compatible",
+      code: JSON.stringify({ data: [{ month: "Jan", revenue: 120, cost: 80 }], x: "month", keys: ["revenue", "cost"], type: "bar" }),
+    });
+    expect(validateMarkdownFlowBlock("graph", JSON.stringify({ Jan: 120, Feb: 160 }))).toEqual({ valid: true });
+    expect(normalizeMarkdownFlowBlock("chart", JSON.stringify({ data: [[100, 25], [200, 41]] }))).toMatchObject({
+      code: JSON.stringify({ data: [{ x: 100, y: 25 }, { x: 200, y: 41 }], x: "x", y: "y", type: "scatter" }),
+    });
+    expect(validateMarkdownFlowBlock("chart", JSON.stringify({ series: [{ name: "Revenue", data: [120, 160] }] }))).toEqual({ valid: true });
+    expect(validateMarkdownFlowBlock("chart", JSON.stringify({ xaxis: { categories: ["Jan", "Feb"] }, series: [{ name: "Revenue", data: [120, 160] }] }))).toEqual({ valid: true });
+    expect(validateMarkdownFlowBlock("chart", JSON.stringify({ data: { Jan: 120, Feb: 160 } }))).toEqual({ valid: true });
+  });
+
+  it("reports confidence, transformations, and readable low-confidence fallbacks", () => {
+    const compatible = normalizeMarkdownFlowBlock("stats", "{ values: { Revenue: 120 } }");
+    expect(compatible).toMatchObject({
+      language: "metrics",
+      normalized: true,
+      classification: "compatible",
+      confidence: expect.any(Number),
+      transformations: expect.arrayContaining([expect.stringContaining("Mapped block language")]),
+    });
+
+    const ambiguous = normalizeMarkdownFlowBlock("chart", JSON.stringify({ data: [{ month: "Jan", sentiment: "good" }] }));
+    expect(ambiguous).toMatchObject({
+      classification: "fallback",
+      confidence: expect.closeTo(0.45, 2),
+      fallback: { kind: "table", columns: ["month", "sentiment"], rows: [["Jan", "good"]] },
+    });
+    expect(validateMarkdownFlowBlock("chart", JSON.stringify({ data: [{ month: "Jan", sentiment: "good" }] }))).toMatchObject({
+      valid: false,
+      classification: "invalid",
+    });
+  });
 });

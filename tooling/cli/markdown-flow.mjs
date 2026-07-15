@@ -11,17 +11,30 @@ const SUPPORTED_FORMATS = new Set(["json"]);
 export const usage = `Usage: markdown-flow <command> [options]
 
 Commands:
-  generate-prompt  Print Markdown Flow model instructions.
-  generate-config  Print a preset render-policy configuration.
-  verify-prompt    Validate Markdown Flow instructions from stdin or a file.
+  prompt           Print optional model instructions (compact by default).
+  verify           Validate model instructions from stdin or a file.
   doctor           Check that the installed package API is available.
+  generate-prompt, verify-prompt, and generate-config remain supported aliases.
 
 Options:
   --preset <name>  One of minimal, chat, rag, technical, analytics, showcase (default: chat).
+  --blocks <list>  Comma-separated task-specific blocks, for example chart,timeline.
+  --compact        Emit the compact contract (the default for prompt).
+  --strict         Emit or verify the full strict contract.
   --format <name>  Output format for generate-config (default: json).
   --output <path>  Write generated output to a file instead of stdout.
-  --input <path>   Read verify-prompt input from a file instead of stdin.
+  --input <path>   Read verify input from a file instead of stdin.
   --help           Show this help message.`;
+
+const COMMAND_ALIASES = new Map([
+  ["prompt", "prompt"],
+  ["generate-prompt", "prompt"],
+  ["verify", "verify"],
+  ["verify-prompt", "verify"],
+  ["generate-config", "config"],
+  ["config", "config"],
+  ["doctor", "doctor"],
+]);
 
 function cliError(message) {
   const error = new Error(message);
@@ -30,10 +43,11 @@ function cliError(message) {
 }
 
 export function parseArguments(argv) {
-  const [command, ...tokens] = argv;
-  if (!command || command === "--help" || command === "-h") return { help: true };
-  if (!new Set(["generate-prompt", "generate-config", "verify-prompt", "doctor"]).has(command)) {
-    throw cliError(`Unknown command: ${command}. Run \`markdown-flow --help\` for usage.`);
+  const [requestedCommand, ...tokens] = argv;
+  if (!requestedCommand || requestedCommand === "--help" || requestedCommand === "-h") return { help: true };
+  const command = COMMAND_ALIASES.get(requestedCommand);
+  if (!command) {
+    throw cliError(`Unknown command: ${requestedCommand}. Run \`markdown-flow --help\` for usage.`);
   }
 
   const options = { command };
@@ -41,28 +55,40 @@ export function parseArguments(argv) {
     const token = tokens[index];
     if (token === "--help" || token === "-h") return { help: true };
     if (!token.startsWith("--")) {
-      if (command === "verify-prompt" && !options.input) {
+      if (command === "verify" && !options.input) {
         options.input = token;
+        continue;
+      }
+      if ((command === "prompt" || command === "config") && !options.output) {
+        options.output = token;
         continue;
       }
       throw cliError(`Unexpected argument: ${token}. Run \`markdown-flow ${command} --help\` for usage.`);
     }
     const key = token.slice(2);
-    if (!new Set(["preset", "format", "output", "input"]).has(key)) {
+    if (key === "compact" || key === "strict") {
+      if (command !== "prompt" && command !== "verify") throw cliError(`${token} is only supported by prompt and verify.`);
+      if (key in options) throw cliError(`Option ${token} may only be provided once.`);
+      options[key] = true;
+      continue;
+    }
+    if (!new Set(["preset", "blocks", "format", "output", "input"]).has(key)) {
       throw cliError(`Unknown option: ${token}. Run \`markdown-flow ${command} --help\` for usage.`);
     }
     const value = tokens[index + 1];
     if (!value || value.startsWith("--")) throw cliError(`Option ${token} requires a value.`);
     index += 1;
-    if (key === "preset" && !["generate-prompt", "generate-config", "verify-prompt"].includes(command)) {
-      throw cliError("--preset is only supported by generate-prompt, generate-config, and verify-prompt.");
+    if (key === "preset" && !["prompt", "config", "verify"].includes(command)) {
+      throw cliError("--preset is only supported by prompt, config, and verify.");
     }
-    if (key === "input" && command !== "verify-prompt") throw cliError("--input is only supported by verify-prompt.");
-    if (key === "format" && command !== "generate-config") throw cliError("--format is only supported by generate-config.");
-    if (key === "output" && !command.startsWith("generate-")) throw cliError("--output is only supported by generated output commands.");
+    if (key === "blocks" && !["prompt", "verify"].includes(command)) throw cliError("--blocks is only supported by prompt and verify.");
+    if (key === "input" && command !== "verify") throw cliError("--input is only supported by verify.");
+    if (key === "format" && command !== "config") throw cliError("--format is only supported by generate-config.");
+    if (key === "output" && !["prompt", "config"].includes(command)) throw cliError("--output is only supported by generated output commands.");
     if (key in options) throw cliError(`Option ${token} may only be provided once.`);
     options[key] = value;
   }
+  if (options.compact && options.strict) throw cliError("--compact and --strict cannot be used together.");
   return options;
 }
 
@@ -104,16 +130,26 @@ function promptRequirements(api, preset) {
   };
 }
 
+function parseBlocks(api, value, fallback) {
+  if (!value) return fallback;
+  const blocks = [...new Set(value.split(",").map((block) => block.trim()).filter(Boolean))];
+  if (!blocks.length) throw cliError("--blocks requires at least one block name.");
+  const known = Array.isArray(api.MARKDOWN_FLOW_LLM_BLOCK_TYPES) ? new Set(api.MARKDOWN_FLOW_LLM_BLOCK_TYPES) : undefined;
+  const unknown = known ? blocks.filter((block) => !known.has(block)) : [];
+  if (unknown.length) throw cliError(`Unknown block${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ")}.`);
+  return blocks;
+}
+
 export function verifyPrompt(prompt, requirements) {
   const failures = [];
   if (!prompt.trim()) failures.push("prompt is empty");
-  if (!prompt.includes(`Markdown Flow contract: ${requirements.protocol}.`)) failures.push(`missing protocol declaration (${requirements.protocol})`);
-  const allowedLine = `Allowed block types: ${requirements.allowedBlocks.join(", ") || "none"}.`;
-  if (!prompt.includes(allowedLine)) failures.push(`missing allowed-block policy (${requirements.allowedBlocks.join(", ") || "none"})`);
-  if (!prompt.includes("strict JSON")) failures.push("missing strict JSON requirement");
+  if (!prompt.includes(requirements.protocol)) failures.push(`missing protocol declaration (${requirements.protocol})`);
+  const missingBlocks = requirements.allowedBlocks.filter((block) => !prompt.includes(block));
+  if (missingBlocks.length) failures.push(`missing requested blocks (${missingBlocks.join(", ")})`);
+  if (requirements.strict && !prompt.includes("strict JSON")) failures.push("missing strict JSON requirement");
   if (!prompt.includes("[cite:source-id]")) failures.push("missing citation-token requirement");
-  if (!prompt.includes("Never invent sources or data.")) failures.push("missing source and data safety requirement");
-  if (!prompt.includes("Never emit an empty or placeholder rich block.")) failures.push("missing non-empty rich-block requirement");
+  if (!/Never (?:emit|invent)|Do not invent/.test(prompt)) failures.push("missing source and data safety requirement");
+  if (!/meaningful|non-empty|placeholder/.test(prompt)) failures.push("missing meaningful-data requirement");
   return failures;
 }
 
@@ -146,12 +182,17 @@ export async function runCli(argv, { api = undefined, io = process } = {}) {
   const markdownFlow = api ?? await loadApi();
   const preset = options.command === "doctor" ? undefined : getPreset(markdownFlow, options.preset);
 
-  if (options.command === "generate-prompt") {
-    const output = `${markdownFlow.createMarkdownFlowInstructions({ allowedBlocks: promptRequirements(markdownFlow, preset).allowedBlocks })}\n`;
+  if (options.command === "prompt") {
+    const blocks = parseBlocks(markdownFlow, options.blocks, promptRequirements(markdownFlow, preset).allowedBlocks);
+    const output = `${markdownFlow.createMarkdownFlowInstructions({
+      blocks,
+      detail: options.strict ? "full" : "compact",
+      mode: options.strict ? "strict" : "normalize",
+    })}\n`;
     await writeOutput(options.output, output, io);
     return 0;
   }
-  if (options.command === "generate-config") {
+  if (options.command === "config") {
     const format = options.format ?? "json";
     if (!SUPPORTED_FORMATS.has(format)) throw cliError(`Unsupported config format: ${format}. Supported formats: json.`);
     const config = {
@@ -162,7 +203,7 @@ export async function runCli(argv, { api = undefined, io = process } = {}) {
     await writeOutput(options.output, `${JSON.stringify(config, null, 2)}\n`, io);
     return 0;
   }
-  if (options.command === "verify-prompt") {
+  if (options.command === "verify") {
     let prompt;
     if (options.input) {
       const source = resolve(process.cwd(), options.input);
@@ -174,7 +215,12 @@ export async function runCli(argv, { api = undefined, io = process } = {}) {
     } else {
       prompt = await readStdin(io);
     }
-    const failures = verifyPrompt(prompt, promptRequirements(markdownFlow, preset));
+    const requirements = promptRequirements(markdownFlow, preset);
+    const failures = verifyPrompt(prompt, {
+      ...requirements,
+      allowedBlocks: parseBlocks(markdownFlow, options.blocks, requirements.allowedBlocks),
+      strict: options.strict === true,
+    });
     if (failures.length) throw cliError(`Prompt verification failed: ${failures.join("; ")}.`);
     io.stdout.write(`Prompt verified for preset \"${preset}\".\n`);
     return 0;
@@ -185,6 +231,7 @@ export async function runCli(argv, { api = undefined, io = process } = {}) {
   const checks = [
     ["installed version", typeof packageMetadata.version === "string" && packageMetadata.version.length > 0],
     ["public AI API", typeof markdownFlow.createMarkdownFlowInstructions === "function"],
+    ["compact prompt", typeof markdownFlow.MARKDOWN_FLOW_COMPACT_PROMPT === "string" && markdownFlow.MARKDOWN_FLOW_COMPACT_PROMPT.length > 0],
     ["protocol", typeof markdownFlow.MARKDOWN_FLOW_PROTOCOL === "string"],
     ["presets", Array.isArray(markdownFlow.AI_RESPONSE_PRESETS)],
     ["bundled AI module", await access(bundledApi, constants.R_OK).then(() => true, () => false)],

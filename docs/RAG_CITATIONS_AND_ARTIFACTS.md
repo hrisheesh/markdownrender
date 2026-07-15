@@ -1,3 +1,3 @@
 # RAG citations, datasets, and artifacts
 
-See the [Ultimate User Guide: citations, datasets, and trusted artifacts](../README.md#citations-datasets-and-trusted-artifacts) and [security configuration](../README.md#security-configuration).
+See the [RAG with citations recipe](./BACKENDS.md#rag-with-citations) and [Security and strict mode](./SECURITY.md) for source, dataset, and registered-artifact boundaries.

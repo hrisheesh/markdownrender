@@ -1,3 +1,3 @@
 # Structured LLM response UI
 
-See the [Ultimate User Guide: presets, policies, and normalization](../README.md#presets-policies-and-normalization) and [all built-in blocks](../README.md#all-built-in-blocks).
+See the [optional rich-output prompt](../README.md#optional-rich-output-prompt), [built-in rich blocks](../README.md#built-in-rich-blocks), and [strict security controls](./SECURITY.md).
