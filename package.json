@@ -41,7 +41,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "markdown-flow": "./tooling/cli/markdown-flow.mjs"
+    "markdown-flow": "tooling/cli/markdown-flow.mjs"
   },
   "files": [
     "dist",
